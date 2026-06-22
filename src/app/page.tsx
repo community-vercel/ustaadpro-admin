@@ -5,9 +5,9 @@ import type {ReactNode} from 'react';
 import {
   Activity,
   ClipboardList,
-  IndianRupee,
   RefreshCw,
   Users,
+  Wallet,
   Wrench,
 } from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
@@ -74,7 +74,7 @@ export default function OverviewPage() {
           value={summary?.totalServices || 0}
         />
         <StatCard
-          icon={<IndianRupee />}
+          icon={<Wallet />}
           label="Revenue"
           value={money(summary?.revenue || 0)}
         />

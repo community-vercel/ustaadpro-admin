@@ -83,7 +83,7 @@ export const defaultSettings: AdminSettings = {
 };
 
 export function money(value: number) {
-  return `PKR ${Number(value || 0).toLocaleString('en-PK')}`;
+  return `Rs. ${Number(value || 0).toLocaleString('en-PK')}`;
 }
 
 export function parseBookingSchedule(bookedFor: string) {

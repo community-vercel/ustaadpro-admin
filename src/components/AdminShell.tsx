@@ -10,6 +10,7 @@ import {
   ShoppingBag,
   ShoppingCart,
   Send,
+  UserCheck,
 } from 'lucide-react';
 
 const navItems = [
@@ -21,6 +22,7 @@ const navItems = [
   {href: '/shop-orders', label: 'Shop Orders', Icon: ShoppingCart},
   {href: '/broadcast', label: 'Broadcast', Icon: Send},
   {href: '/app-control', label: 'App Control', Icon: Settings},
+  {href: '/resources', label: 'Our Resources', Icon: UserCheck},
   {href: '/users', label: 'Users', Icon: Users},
 ];
 

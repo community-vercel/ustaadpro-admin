@@ -190,6 +190,12 @@ export function getUsers() {
   return request<AdminUser[]>('/admin/users');
 }
 
+export function deleteUser(id: number) {
+  return request(`/admin/users/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 export function getServices() {
   return request<AdminService[]>('/admin/services');
 }
