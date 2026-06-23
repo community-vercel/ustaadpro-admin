@@ -1,5 +1,5 @@
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5000/api';
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.ustaadpro.pk/api';
 const PUBLIC_API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 
 export interface AdminSummary {
@@ -9,6 +9,8 @@ export interface AdminSummary {
   totalServices: number;
   revenue: number;
 }
+
+
 
 export interface AdminUser {
   id: number;
@@ -170,6 +172,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function resolveAssetUrl(url?: string) {
   if (!url) return '';
+  const localUploadPath = url.match(
+    /^https?:\/\/(?:127\.0\.0\.1|localhost):\d+(\/uploads\/.+)$/i,
+  )?.[1];
+  if (localUploadPath) {
+    return `${PUBLIC_API_ORIGIN}${localUploadPath}`;
+  }
   if (url.startsWith('http') || url.startsWith('data:')) return url;
   return `${PUBLIC_API_ORIGIN}${url}`;
 }

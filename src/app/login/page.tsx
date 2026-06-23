@@ -1,8 +1,8 @@
 'use client';
 
-import {FormEvent, Suspense, useState} from 'react';
-import {useRouter, useSearchParams} from 'next/navigation';
-import {LockKeyhole, LogIn} from 'lucide-react';
+import { FormEvent, Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { LockKeyhole, LogIn } from 'lucide-react';
 
 export default function LoginPage() {
   return (
@@ -28,8 +28,8 @@ function LoginForm() {
     try {
       const response = await fetch('/api/admin-login', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({email, password}),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       });
 
       if (!response.ok) {
@@ -73,7 +73,7 @@ function LoginForm() {
               autoComplete="email"
               inputMode="email"
               onChange={event => setEmail(event.target.value)}
-              placeholder="superadmin@ustaadpro.pk"
+              placeholder="admin@email.com"
               required
               type="email"
               value={email}
