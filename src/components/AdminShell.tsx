@@ -1,5 +1,9 @@
+'use client';
+
 import Link from 'next/link';
+import {usePathname, useRouter} from 'next/navigation';
 import type {ReactNode} from 'react';
+import {useEffect, useState} from 'react';
 import {
   ClipboardList,
   LayoutDashboard,
@@ -12,6 +16,7 @@ import {
   Send,
   UserCheck,
 } from 'lucide-react';
+import {LogoutButton} from './LogoutButton';
 
 const navItems = [
   {href: '/', label: 'Overview', Icon: LayoutDashboard},
@@ -37,6 +42,55 @@ export function AdminShell({
   title: string;
   action?: ReactNode;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function verifySession() {
+      try {
+        const response = await fetch('/api/admin-login', {
+          cache: 'no-store',
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          const nextPath = encodeURIComponent(pathname || '/');
+          router.replace(`/login?next=${nextPath}`);
+          return;
+        }
+
+        if (isMounted) {
+          setIsAuthenticated(true);
+        }
+      } catch {
+        const nextPath = encodeURIComponent(pathname || '/');
+        router.replace(`/login?next=${nextPath}`);
+      } finally {
+        if (isMounted) {
+          setIsCheckingAuth(false);
+        }
+      }
+    }
+
+    verifySession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [pathname, router]);
+
+  if (isCheckingAuth || !isAuthenticated) {
+    return (
+      <main className="authCheckPage">
+        <div className="brandMark">UP</div>
+      </main>
+    );
+  }
+
   return (
     <main className="shell">
       <aside className="sidebar">
@@ -61,7 +115,10 @@ export function AdminShell({
             <p className="eyebrow">{eyebrow}</p>
             <h2>{title}</h2>
           </div>
-          {action}
+          <div className="topbarActions">
+            {action}
+            <LogoutButton />
+          </div>
         </header>
         {children}
       </section>
