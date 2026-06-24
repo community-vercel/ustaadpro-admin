@@ -2,6 +2,18 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.ustaadpro.pk/api';
 const PUBLIC_API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 
+export function resolveApiAssetUrl(url?: string) {
+  if (!url) return '';
+  const localUploadPath = url.match(
+    /^https?:\/\/(?:127\.0\.0\.1|localhost):\d+(\/uploads\/.+)$/i,
+  )?.[1];
+  if (localUploadPath) {
+    return `${PUBLIC_API_ORIGIN}${localUploadPath}`;
+  }
+  if (url.startsWith('http') || url.startsWith('data:')) return url;
+  return `${PUBLIC_API_ORIGIN}${url}`;
+}
+
 export interface AdminSummary {
   totalOrders: number;
   activeOrders: number;
@@ -129,6 +141,7 @@ export interface AdminShopOrder {
   total: number;
   shippingCost?: number;
   status: 'placed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  cancelReason?: string | null;
   paymentMethod: string;
   address: string;
   createdAt: string;
@@ -312,6 +325,7 @@ export function getShopOrders() {
 export function updateShopOrderStatus(
   id: string,
   status: AdminShopOrder['status'],
+  cancelReason?: string | null,
 ) {
   return request<{
     message: string;
@@ -321,7 +335,7 @@ export function updateShopOrderStatus(
     pushMessage: string;
   }>(`/admin/shop/orders/${id}/status`, {
     method: 'PATCH',
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, cancelReason }),
   });
 }
 

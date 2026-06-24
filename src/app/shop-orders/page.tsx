@@ -7,6 +7,7 @@ import {
   AdminShopOrder,
   getShopOrders,
   updateShopOrderStatus,
+  resolveApiAssetUrl,
 } from '@/lib/api';
 import {money} from '@/lib/adminUi';
 
@@ -31,8 +32,18 @@ export default function ShopOrdersPage() {
   }, []);
 
   const updateStatus = async (id: string, status: AdminShopOrder['status']) => {
+    let cancelReason: string | null = null;
+    if (status === 'cancelled') {
+      const reason = window.prompt('Please enter a cancellation reason:');
+      if (reason === null) return; // User cancelled the prompt
+      if (!reason.trim()) {
+        alert('A cancellation reason is required.');
+        return;
+      }
+      cancelReason = reason.trim();
+    }
     try {
-      const result = await updateShopOrderStatus(id, status);
+      const result = await updateShopOrderStatus(id, status, cancelReason);
       await loadData();
       setMessage(`Shop order status updated. ${result.pushMessage}`);
     } catch (error) {
@@ -83,13 +94,33 @@ export default function ShopOrdersPage() {
 
               <div className="orderItems">
                 {order.items.map(item => (
-                  <span key={`${order.id}-${item.product.id}`}>
-                    {item.quantity}x {item.product.title} ({money(item.price)})
-                  </span>
+                  <div key={`${order.id}-${item.product.id}`} className="adminOrderItem">
+                    {item.product.imageUrl ? (
+                      <img 
+                        src={resolveApiAssetUrl(item.product.imageUrl)} 
+                        alt={item.product.title} 
+                        className="adminOrderProductThumb" 
+                      />
+                    ) : (
+                      <div className="adminOrderProductThumbPlaceholder">
+                        <ShoppingCart size={14} />
+                      </div>
+                    )}
+                    <span>
+                      {item.quantity}x {item.product.title} ({money(item.price)})
+                    </span>
+                  </div>
                 ))}
               </div>
 
               <p className="mutedLine">{order.address}</p>
+
+              {order.status === 'cancelled' && order.cancelReason && (
+                <div className="adminCancelReason">
+                  <strong>Cancellation Reason:</strong>
+                  <p>{order.cancelReason}</p>
+                </div>
+              )}
 
               <label className="field compactField">
                 <span>Status</span>
