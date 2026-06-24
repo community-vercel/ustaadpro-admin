@@ -90,6 +90,17 @@ select {
   display: flex;
   align-items: center;
   gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.sidebar a:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.sidebar a.active {
+  background: #6cf8bb;
+  color: #002113;
+  font-weight: 700;
 }
 
 .workspace {

@@ -31,6 +31,8 @@ const navItems = [
   {href: '/users', label: 'Users', Icon: Users},
 ];
 
+let cachedAuthStatus = false;
+
 export function AdminShell({
   children,
   eyebrow,
@@ -44,8 +46,8 @@ export function AdminShell({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(cachedAuthStatus);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(!cachedAuthStatus);
 
   useEffect(() => {
     let isMounted = true;
@@ -58,15 +60,18 @@ export function AdminShell({
         });
 
         if (!response.ok) {
+          cachedAuthStatus = false;
           const nextPath = encodeURIComponent(pathname || '/');
           router.replace(`/login?next=${nextPath}`);
           return;
         }
 
+        cachedAuthStatus = true;
         if (isMounted) {
           setIsAuthenticated(true);
         }
       } catch {
+        cachedAuthStatus = false;
         const nextPath = encodeURIComponent(pathname || '/');
         router.replace(`/login?next=${nextPath}`);
       } finally {
@@ -93,19 +98,34 @@ export function AdminShell({
 
   return (
     <main className="shell">
-      <aside className="sidebar">
+      <aside 
+        className="sidebar"
+        onScroll={(e) => {
+          sessionStorage.setItem('adminSidebarScroll', e.currentTarget.scrollTop.toString());
+        }}
+        ref={(el) => {
+          if (el && !el.dataset.scrolled) {
+            const saved = sessionStorage.getItem('adminSidebarScroll');
+            if (saved) el.scrollTop = parseInt(saved, 10);
+            el.dataset.scrolled = 'true';
+          }
+        }}
+      >
         <div className="brandMark">UP</div>
         <div>
           <h1>UstaadPro Admin</h1>
           <p>Bookings, services, customers, and operations.</p>
         </div>
         <nav>
-          {navItems.map(item => (
-            <Link href={item.href} key={item.href}>
-              <item.Icon size={17} />
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map(item => {
+            const isActive = pathname === item.href;
+            return (
+              <Link href={item.href} key={item.href} className={isActive ? 'active' : ''}>
+                <item.Icon size={17} />
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
       </aside>
 
