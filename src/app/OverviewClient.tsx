@@ -1,7 +1,7 @@
 'use client';
 
-import {useEffect, useMemo, useState} from 'react';
-import type {ReactNode} from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import {
   Activity,
   ClipboardList,
@@ -10,7 +10,7 @@ import {
   Wallet,
   Wrench,
 } from 'lucide-react';
-import {AdminShell} from '@/components/AdminShell';
+import { AdminShell } from '@/components/AdminShell';
 import {
   AdminOrder,
   AdminShopOrder,
@@ -32,7 +32,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import {money, parseBookingSchedule} from '@/lib/adminUi';
+import { money, parseBookingSchedule } from '@/lib/adminUi';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -64,7 +64,7 @@ export function OverviewClient() {
   }, [shopOrders]);
 
   const revenueTimelineData = useMemo(() => {
-    const last7Days = Array.from({length: 7}).map((_, i) => {
+    const last7Days = Array.from({ length: 7 }).map((_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - (6 - i));
       const label = `${d.getMonth() + 1}/${d.getDate()}`;
@@ -213,8 +213,12 @@ export function OverviewClient() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="date" tickLine={false} axisLine={false} />
                 <YAxis tickLine={false} axisLine={false} tickFormatter={(val) => `Rs${val}`} />
-                <Tooltip formatter={(value: number) => money(value)} />
-                <Legend />
+                <Tooltip
+                  formatter={(value) => {
+                    const amount = typeof value === 'number' ? value : Number(value || 0);
+                    return money(amount);
+                  }}
+                />                <Legend />
                 <Bar dataKey="service" name="Service Revenue" stackId="a" fill="#0ea5e9" radius={[0, 0, 4, 4]} />
                 <Bar dataKey="shop" name="Shop Revenue" stackId="a" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
               </BarChart>
