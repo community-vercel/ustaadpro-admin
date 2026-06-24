@@ -30,6 +30,7 @@ export interface AdminOrder {
   paymentMethod: string;
   address: string;
   specialInstructions?: string | null;
+  cancelReason?: string | null;
   createdAt: string;
   inspectionFee: number;
   tax: number;
@@ -246,10 +247,14 @@ export async function uploadImage(dataUrl: string, filename: string) {
   return response.url;
 }
 
-export function updateOrderStatus(id: string, status: AdminOrder['status']) {
+export function updateOrderStatus(
+  id: string,
+  status: AdminOrder['status'],
+  cancelReason?: string | null,
+) {
   return request(`/admin/orders/${id}/status`, {
     method: 'PATCH',
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, cancelReason }),
   });
 }
 

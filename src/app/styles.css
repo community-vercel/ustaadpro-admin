@@ -255,6 +255,13 @@ select {
   padding: 11px 12px;
 }
 
+select.statusSelectCancelled {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #991b1b;
+  font-weight: 800;
+}
+
 .field textarea {
   min-height: 90px;
   resize: vertical;
@@ -499,6 +506,10 @@ select {
   line-height: 1.35;
 }
 
+.statusTextCancelled {
+  color: #991b1b !important;
+}
+
 .orderSummaryRow small,
 .orderTop small {
   display: block;
@@ -623,6 +634,30 @@ select {
 
 .instructions p {
   margin: 6px 0 0;
+}
+
+.cancelReasonBox {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.cancelReasonBox span,
+.cancelReasonBox strong {
+  display: block;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cancelReasonBox p {
+  margin: 6px 0 0;
+  color: #7f1d1d;
+  line-height: 1.45;
 }
 
 .mutedBox {

@@ -90,6 +90,16 @@ export default function OrdersPage() {
                       <span>Total</span>
                       <strong>{money(order.total)}</strong>
                     </div>
+                    <div>
+                      <span>Status</span>
+                      <strong
+                        className={
+                          order.status === 'cancelled' ? 'statusTextCancelled' : ''
+                        }
+                      >
+                        {order.status}
+                      </strong>
+                    </div>
                     <Link
                       className="secondaryButton"
                       href={`/orders/${order.id}`}
@@ -97,6 +107,15 @@ export default function OrdersPage() {
                       View details
                     </Link>
                   </div>
+                  {order.status === 'cancelled' ? (
+                    <div className="cancelReasonBox">
+                      <span>Cancellation reason</span>
+                      <p>
+                        {order.cancelReason ||
+                          'No cancellation reason was saved for this order.'}
+                      </p>
+                    </div>
+                  ) : null}
                 </article>
               );
             })}

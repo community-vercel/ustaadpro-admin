@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {useParams} from 'next/navigation';
 import {ArrowLeft, RefreshCw} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
-import {AdminOrder, getOrder, updateOrderStatus} from '@/lib/api';
+import {AdminOrder, getOrder, updateOrderStatus, resolveAssetUrl} from '@/lib/api';
 import {money, parseBookingSchedule} from '@/lib/adminUi';
 
 export default function OrderDetailPage() {
@@ -33,7 +33,18 @@ export default function OrderDetailPage() {
 
   const handleStatus = async (status: AdminOrder['status']) => {
     if (!order) return;
-    await updateOrderStatus(order.id, status);
+
+    let cancelReason: string | null = null;
+    if (status === 'cancelled') {
+      const reason = prompt('Please enter a cancellation reason:');
+      if (reason === null) {
+        // User cancelled the prompt dialog, do not change status
+        return;
+      }
+      cancelReason = reason.trim() || 'Cancelled by administrator';
+    }
+
+    await updateOrderStatus(order.id, status, cancelReason);
     await loadData();
     setMessage(`Order ${order.id} updated.`);
   };
@@ -81,6 +92,7 @@ export default function OrderDetailPage() {
               )}
             </div>
             <select
+              className={order.status === 'cancelled' ? 'statusSelectCancelled' : ''}
               value={order.status}
               onChange={event =>
                 handleStatus(event.target.value as AdminOrder['status'])
@@ -123,7 +135,7 @@ export default function OrderDetailPage() {
           <div className="orderedServices">
             {order.items.map(item => (
               <div className="orderedService" key={item.serviceId}>
-                {item.imageUrl && <img src={item.imageUrl} alt="" />}
+                {item.imageUrl && <img src={resolveAssetUrl(item.imageUrl)} alt="" />}
                 <div>
                   <strong>
                     {item.quantity}x {item.title}
@@ -153,6 +165,13 @@ export default function OrderDetailPage() {
           ) : (
             <div className="mutedBox">No special instructions added.</div>
           )}
+
+          {order.status === 'cancelled' ? (
+            <div className="cancelReasonBox">
+              <strong>Cancellation Reason</strong>
+              <p>{order.cancelReason || 'No cancellation reason was saved for this order.'}</p>
+            </div>
+          ) : null}
 
           <div className="invoiceGrid">
             <DetailBlock
