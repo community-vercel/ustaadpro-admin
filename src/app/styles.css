@@ -44,6 +44,7 @@ select {
   position: sticky;
   top: 0;
   height: 100vh;
+  align-self: start;
   background: var(--dark);
   color: #fff;
   padding: 28px 22px;
