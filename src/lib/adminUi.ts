@@ -80,6 +80,13 @@ export const defaultSettings: AdminSettings = {
   currency: 'PKR',
   supportPhone: '+923001234567',
   shippingCost: 200,
+  rewardEnabled: true,
+  rewardPointValue: 25,
+  rewardMinimumRedeem: 100,
+  serviceRewardPointsOnCompletion: 1,
+  serviceRewardMaxDiscountPercent: 10,
+  shopRewardEarnPercent: 0.5,
+  shopRewardMaxDiscountPercent: 5,
 };
 
 export function money(value: number) {

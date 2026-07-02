@@ -68,6 +68,7 @@ export default function UsersPage() {
             <span>Name</span>
             <span>Contact</span>
             <span>Orders</span>
+            <span>Reward Points</span>
             <span>Total Spend</span>
             <span>Action</span>
           </div>
@@ -80,6 +81,7 @@ export default function UsersPage() {
                 {user.email}
               </span>
               <span>{user.totalOrders}</span>
+              <span>{user.rewardPoints || 0}</span>
               <span>{money(user.totalSpend)}</span>
               <button
                 className="dangerIconButton"
