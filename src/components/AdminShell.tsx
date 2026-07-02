@@ -15,10 +15,21 @@ import {
   ShoppingCart,
   Send,
   UserCheck,
+  Sliders,
+  MessageCircle,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import {LogoutButton} from './LogoutButton';
 
-const navItems = [
+type NavItem = {
+  href?: string;
+  label: string;
+  Icon: any;
+  subItems?: Array<{ href: string; label: string; Icon: any }>;
+};
+
+const navItems: NavItem[] = [
   {href: '/', label: 'Overview', Icon: LayoutDashboard},
   {href: '/orders', label: 'Orders', Icon: ClipboardList},
   {href: '/services', label: 'Services', Icon: Wrench},
@@ -26,9 +37,16 @@ const navItems = [
   {href: '/shop-products', label: 'Shop Products', Icon: ShoppingBag},
   {href: '/shop-orders', label: 'Shop Orders', Icon: ShoppingCart},
   {href: '/broadcast', label: 'Broadcast', Icon: Send},
-  {href: '/app-control', label: 'App Control', Icon: Settings},
+  {href: '/app-control', label: 'App Control', Icon: Sliders},
   {href: '/resources', label: 'Our Resources', Icon: UserCheck},
   {href: '/users', label: 'Users', Icon: Users},
+  {
+    label: 'Settings',
+    Icon: Settings,
+    subItems: [
+      {href: '/whatsapp-bot', label: 'WhatsApp Bot', Icon: MessageCircle}
+    ]
+  }
 ];
 
 let cachedAuthStatus = false;
@@ -48,6 +66,7 @@ export function AdminShell({
   const pathname = usePathname();
   const [isAuthenticated, setIsAuthenticated] = useState(cachedAuthStatus);
   const [isCheckingAuth, setIsCheckingAuth] = useState(!cachedAuthStatus);
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let isMounted = true;
@@ -118,9 +137,39 @@ export function AdminShell({
         </div>
         <nav>
           {navItems.map(item => {
+            if (item.subItems) {
+              const isOpen = openMenus[item.label] || item.subItems.some(sub => pathname === sub.href);
+              return (
+                <div key={item.label}>
+                  <div 
+                    className="sidebarParent"
+                    onClick={() => setOpenMenus(prev => ({ ...prev, [item.label]: !prev[item.label] }))}
+                  >
+                    <div className="sidebarParentContent">
+                      <item.Icon size={17} />
+                      {item.label}
+                    </div>
+                    {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  </div>
+                  {isOpen && (
+                    <div className="sidebarSubmenu">
+                      {item.subItems.map(sub => {
+                        const isSubActive = pathname === sub.href;
+                        return (
+                          <Link href={sub.href} key={sub.href} className={isSubActive ? 'active' : ''}>
+                            {sub.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             const isActive = pathname === item.href;
             return (
-              <Link href={item.href} key={item.href} className={isActive ? 'active' : ''}>
+              <Link href={item.href!} key={item.label} className={isActive ? 'active' : ''}>
                 <item.Icon size={17} />
                 {item.label}
               </Link>

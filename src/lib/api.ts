@@ -1,5 +1,5 @@
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.ustaadpro.pk/api';
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
 const PUBLIC_API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 
 export function resolveApiAssetUrl(url?: string) {
@@ -361,4 +361,91 @@ export function sendBroadcastNotification(input: {
     method: 'POST',
     body: JSON.stringify(input),
   });
+}
+
+// ─── WHATSAPP BOT API TYPES & METHODS ───
+
+export interface BotStat {
+  totalBookings: number;
+  pendingBookings: number;
+  completedBookings: number;
+  todayBookings: number;
+  activeServices: number;
+  activeSessions: number;
+}
+
+export interface BotService {
+  id?: string;
+  _id?: string;
+  category: string;
+  name: string;
+  msg: string;
+  options: Record<string, string>;
+  active: boolean;
+}
+
+export interface BotBooking {
+  id?: string;
+  _id?: string;
+  userId: string;
+  mainCategory: string;
+  serviceType: string;
+  subService: string;
+  date: string;
+  time: string;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  createdAt?: string;
+}
+
+export interface BotSession {
+  userId: string;
+  step: string;
+  updatedAt: string;
+}
+
+export function getBotStats() {
+  return request<BotStat>('/stats');
+}
+
+export function getBotServices() {
+  return request<BotService[]>('/services');
+}
+
+export function saveBotService(service: Partial<BotService>) {
+  const id = service.id || service._id;
+  const isUpdate = Boolean(id);
+  return request(
+    isUpdate ? `/services/${id}` : '/services',
+    {
+      method: isUpdate ? 'PUT' : 'POST',
+      body: JSON.stringify(service),
+    },
+  );
+}
+
+export function deleteBotService(id: string) {
+  return request(`/services/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export function getBotBookings() {
+  return request<BotBooking[]>('/bookings');
+}
+
+export function updateBotBookingStatus(id: string, status: BotBooking['status']) {
+  return request(`/bookings/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function deleteBotBooking(id: string) {
+  return request(`/bookings/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export function getBotSessions() {
+  return request<BotSession[]>('/sessions');
 }
