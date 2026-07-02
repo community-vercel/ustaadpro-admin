@@ -29,6 +29,7 @@ export interface AdminUser {
   name: string;
   phone: string;
   email: string;
+  rewardPoints: number;
   createdAt: string;
   totalOrders: number;
   totalSpend: number;
@@ -46,6 +47,9 @@ export interface AdminOrder {
   createdAt: string;
   inspectionFee: number;
   tax: number;
+  rewardPointsEarned?: number;
+  rewardPointsRedeemed?: number;
+  rewardDiscount?: number;
   customerName: string;
   customerPhone: string;
   customerEmail: string;
@@ -105,6 +109,13 @@ export interface AdminSettings {
   currency: string;
   supportPhone: string;
   shippingCost: number;
+  rewardEnabled: boolean;
+  rewardPointValue: number;
+  rewardMinimumRedeem: number;
+  serviceRewardPointsOnCompletion: number;
+  serviceRewardMaxDiscountPercent: number;
+  shopRewardEarnPercent: number;
+  shopRewardMaxDiscountPercent: number;
 }
 
 export interface AdminCategory {
@@ -140,6 +151,9 @@ export interface AdminShopOrder {
   id: string;
   total: number;
   shippingCost?: number;
+  rewardPointsEarned?: number;
+  rewardPointsRedeemed?: number;
+  rewardDiscount?: number;
   status: 'placed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   cancelReason?: string | null;
   paymentMethod: string;

@@ -58,7 +58,7 @@ export default function AppControlPage() {
   const handleSaveSettings = async () => {
     const nextSettings = await saveSettings(settings);
     setSettings(nextSettings);
-    setMessage('Invoice pricing settings saved.');
+    setMessage('Pricing and reward settings saved.');
   };
 
   const editSlide = (slide: AdminHomeSlide) => {
@@ -240,9 +240,96 @@ export default function AppControlPage() {
               setSettings({...settings, shippingCost: Number(shippingCost)})
             }
           />
+          <Field
+            label="Reward Point Value (PKR)"
+            type="number"
+            value={String(settings.rewardPointValue)}
+            onChange={rewardPointValue =>
+              setSettings({
+                ...settings,
+                rewardPointValue: Number(rewardPointValue),
+              })
+            }
+          />
+          <Field
+            label="Minimum Redeem Value (PKR)"
+            type="number"
+            value={String(settings.rewardMinimumRedeem)}
+            onChange={rewardMinimumRedeem =>
+              setSettings({
+                ...settings,
+                rewardMinimumRedeem: Number(rewardMinimumRedeem),
+              })
+            }
+          />
+          <Field
+            label="Service Points On Completion"
+            type="number"
+            value={String(settings.serviceRewardPointsOnCompletion)}
+            onChange={serviceRewardPointsOnCompletion =>
+              setSettings({
+                ...settings,
+                serviceRewardPointsOnCompletion: Number(
+                  serviceRewardPointsOnCompletion,
+                ),
+              })
+            }
+          />
+          <Field
+            label="Service Max Discount (%)"
+            type="number"
+            value={String(settings.serviceRewardMaxDiscountPercent)}
+            onChange={serviceRewardMaxDiscountPercent =>
+              setSettings({
+                ...settings,
+                serviceRewardMaxDiscountPercent: Number(
+                  serviceRewardMaxDiscountPercent,
+                ),
+              })
+            }
+          />
+          <Field
+            label="Shop Reward Earn (%)"
+            type="number"
+            value={String(settings.shopRewardEarnPercent)}
+            onChange={shopRewardEarnPercent =>
+              setSettings({
+                ...settings,
+                shopRewardEarnPercent: Number(shopRewardEarnPercent),
+              })
+            }
+          />
+          <Field
+            label="Shop Max Discount (%)"
+            type="number"
+            value={String(settings.shopRewardMaxDiscountPercent)}
+            onChange={shopRewardMaxDiscountPercent =>
+              setSettings({
+                ...settings,
+                shopRewardMaxDiscountPercent: Number(
+                  shopRewardMaxDiscountPercent,
+                ),
+              })
+            }
+          />
+          <label className="field">
+            <span>Reward System</span>
+            <select
+              value={settings.rewardEnabled ? 'enabled' : 'disabled'}
+              onChange={event =>
+                setSettings({
+                  ...settings,
+                  rewardEnabled: event.target.value === 'enabled',
+                })
+              }
+            >
+              <option value="enabled">Enabled</option>
+              <option value="disabled">Disabled</option>
+            </select>
+          </label>
         </div>
         <button className="primaryButton" onClick={handleSaveSettings}>
-          Save Pricing
+          Save Pricing & Rewards
         </button>
       </section>
     </AdminShell>

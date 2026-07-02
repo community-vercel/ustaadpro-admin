@@ -178,6 +178,18 @@ export default function OrderDetailPage() {
               label="Services subtotal"
               value={money(savedServicesSubtotal)}
             />
+            {Number(order.rewardDiscount || 0) > 0 && (
+              <DetailBlock
+                label={`Reward discount (${order.rewardPointsRedeemed || 0} pts)`}
+                value={`-${money(order.rewardDiscount || 0)}`}
+              />
+            )}
+            {Number(order.rewardPointsEarned || 0) > 0 && (
+              <DetailBlock
+                label="Reward points earned"
+                value={`${order.rewardPointsEarned || 0} points`}
+              />
+            )}
             {schedule?.isRecurring && (
               <DetailBlock
                 label="Base x recurring days"

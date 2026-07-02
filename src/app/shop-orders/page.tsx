@@ -89,6 +89,12 @@ export default function ShopOrdersPage() {
                 <div>
                   <b>{money(order.total)}</b>
                   <p>Shipping: {money(order.shippingCost || 0)}</p>
+                  {Number(order.rewardDiscount || 0) > 0 && (
+                    <p>Reward discount: -{money(order.rewardDiscount || 0)}</p>
+                  )}
+                  {Number(order.rewardPointsEarned || 0) > 0 && (
+                    <p>Reward earned: {order.rewardPointsEarned} points</p>
+                  )}
                 </div>
               </div>
 

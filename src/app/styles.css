@@ -832,7 +832,7 @@ select.statusSelectCancelled {
 
 .userRow {
   display: grid;
-  grid-template-columns: 1.1fr 1.5fr 0.5fr 0.7fr auto;
+  grid-template-columns: 1.1fr 1.5fr 0.5fr 0.7fr 0.7fr auto;
   gap: 12px;
   padding: 12px 14px;
   border-top: 1px solid var(--line);
