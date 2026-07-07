@@ -1,5 +1,5 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
+﻿const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.ustaadpro.pk/api';
 const PUBLIC_API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 
 export function resolveApiAssetUrl(url?: string) {
@@ -60,12 +60,44 @@ export interface AdminOrder {
     duration: string;
     categoryId: string;
     serviceType?: string;
+    serviceWorkPriceId?: number | null;
+    serviceWorkTitle?: string | null;
     imageUrl?: string;
     detailDescription?: string;
     details?: string[];
     quantity: number;
     price: number;
   }>;
+}
+
+export interface AdminPaymentReceipt {
+  id: number;
+  orderId: string;
+  userId: number;
+  receiptUrl: string;
+  amount: number;
+  accountNumber: string;
+  accountTitle: string;
+  status: string;
+  createdAt: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  orderTotal: number;
+  orderStatus: string;
+  bookedFor: string;
+  paymentMethod: string;
+  address: string;
+  items: AdminOrder['items'];
+}
+export interface AdminServiceWorkPrice {
+  id?: number;
+  serviceId?: string;
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  price: number;
+  sortOrder?: number;
 }
 
 export interface AdminService {
@@ -85,6 +117,7 @@ export interface AdminService {
   details?: string[];
   includes: string[];
   excludes: string[];
+  workPrices?: AdminServiceWorkPrice[];
 }
 
 export interface AdminHomeSlide {
@@ -232,6 +265,9 @@ export function deleteUser(id: number) {
   });
 }
 
+export function getPaymentReceipts() {
+  return request<AdminPaymentReceipt[]>('/admin/payment-receipts');
+}
 export function getServices() {
   return request<AdminService[]>('/admin/services');
 }
@@ -363,7 +399,7 @@ export function sendBroadcastNotification(input: {
   });
 }
 
-// ─── WHATSAPP BOT API TYPES & METHODS ───
+// â”€â”€â”€ WHATSAPP BOT API TYPES & METHODS â”€â”€â”€
 
 export interface BotStat {
   totalBookings: number;
@@ -449,3 +485,5 @@ export function deleteBotBooking(id: string) {
 export function getBotSessions() {
   return request<BotSession[]>('/sessions');
 }
+
+

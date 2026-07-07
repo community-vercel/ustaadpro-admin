@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
 import {useEffect, useState} from 'react';
-import {PackagePlus, RefreshCw} from 'lucide-react';
+import {PackagePlus, Plus, RefreshCw, Trash2} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
 import {Field, ImagePickerField} from '@/components/AdminFields';
 import {
@@ -18,6 +18,25 @@ import {
   fallbackCategories,
   money,
 } from '@/lib/adminUi';
+
+type ServiceListKey = 'includes' | 'details' | 'excludes';
+
+const blankWorkPrice = {
+  title: '',
+  description: '',
+  imageUrl: '',
+  price: 0,
+  sortOrder: 0,
+};
+
+function compactList(items?: string[]) {
+  return (items || []).map(item => item.trim()).filter(Boolean);
+}
+
+function ensureEditableList(items?: string[]) {
+  const compacted = compactList(items);
+  return compacted.length ? compacted : [''];
+}
 
 export default function ServicesPage() {
   const [services, setServices] = useState<AdminService[]>([]);
@@ -42,12 +61,92 @@ export default function ServicesPage() {
     );
   }, []);
 
+  const workPrices = serviceForm.workPrices?.length
+    ? serviceForm.workPrices
+    : [blankWorkPrice];
+  const validWorkPrices = workPrices
+    .map((work, index) => ({
+      ...work,
+      title: work.title?.trim() || '',
+      description: work.description?.trim() || '',
+      price: Number(work.price || 0),
+      sortOrder: index,
+    }))
+    .filter(work => work.title && work.price > 0);
+  const minimumWorkPrice = validWorkPrices.length
+    ? Math.min(...validWorkPrices.map(work => work.price))
+    : Number(serviceForm.price || 0);
+
+  const updateWorkPrice = (
+    index: number,
+    patch: Partial<NonNullable<AdminService['workPrices']>[number]>,
+  ) => {
+    setServiceForm(current => {
+      const nextWorkPrices = [
+        ...(current.workPrices?.length ? current.workPrices : [blankWorkPrice]),
+      ];
+      nextWorkPrices[index] = {...nextWorkPrices[index], ...patch};
+      return {...current, workPrices: nextWorkPrices};
+    });
+  };
+
+  const addWorkPrice = () => {
+    setServiceForm(current => ({
+      ...current,
+      workPrices: [
+        ...(current.workPrices || []),
+        {...blankWorkPrice, sortOrder: current.workPrices?.length || 0},
+      ],
+    }));
+  };
+
+  const removeWorkPrice = (index: number) => {
+    setServiceForm(current => ({
+      ...current,
+      workPrices: (current.workPrices || []).filter(
+        (_, itemIndex) => itemIndex !== index,
+      ),
+    }));
+  };
+
+  const updateListItem = (
+    key: ServiceListKey,
+    index: number,
+    value: string,
+  ) => {
+    setServiceForm(current => {
+      const nextItems = ensureEditableList(current[key]);
+      nextItems[index] = value;
+      return {...current, [key]: nextItems};
+    });
+  };
+
+  const addListItem = (key: ServiceListKey) => {
+    setServiceForm(current => ({
+      ...current,
+      [key]: [...ensureEditableList(current[key]), ''],
+    }));
+  };
+
+  const removeListItem = (key: ServiceListKey, index: number) => {
+    setServiceForm(current => {
+      const nextItems = ensureEditableList(current[key]).filter(
+        (_, itemIndex) => itemIndex !== index,
+      );
+      return {...current, [key]: nextItems.length ? nextItems : ['']};
+    });
+  };
+
   const handleSaveService = async () => {
     try {
-      const includes = (serviceForm.includes || []).filter(Boolean);
-      const excludes = (serviceForm.excludes || []).filter(Boolean);
-      const details = (serviceForm.details || []).filter(Boolean);
-      await saveService({...serviceForm, includes, excludes, details});
+      await saveService({
+        ...serviceForm,
+        price: minimumWorkPrice,
+        includes: compactList(serviceForm.includes),
+        excludes: compactList(serviceForm.excludes),
+        details: compactList(serviceForm.details),
+        workPrices: validWorkPrices,
+      });
       setServiceForm(emptyService);
       await loadData();
       setMessage('Service saved and mobile app catalog updated.');
@@ -59,8 +158,65 @@ export default function ServicesPage() {
   };
 
   const editService = (service: AdminService) => {
-    setServiceForm(service);
+    setServiceForm({
+      ...service,
+      includes: ensureEditableList(service.includes),
+      details: ensureEditableList(service.details),
+      excludes: ensureEditableList(service.excludes),
+      workPrices: service.workPrices?.length
+        ? service.workPrices
+        : [
+            {
+              title: service.title,
+              description: service.serviceType || '',
+              price: service.price,
+              imageUrl: '',
+              sortOrder: 0,
+            },
+          ],
+    });
     window.scrollTo({top: 0, behavior: 'smooth'});
+  };
+
+  const renderListEditor = (
+    key: ServiceListKey,
+    label: string,
+    placeholder: string,
+  ) => {
+    const items = ensureEditableList(serviceForm[key]);
+
+    return (
+      <div className="field fieldWide listEditor">
+        <div className="workPriceHeader">
+          <span>{label}</span>
+          <button
+            type="button"
+            className="ghostButton"
+            onClick={() => addListItem(key)}
+          >
+            <Plus size={15} />
+            Add Line
+          </button>
+        </div>
+        {items.map((item, index) => (
+          <div className="listEditorRow" key={`${key}-${index}`}>
+            <input
+              value={item}
+              onChange={event => updateListItem(key, index, event.target.value)}
+              placeholder={placeholder}
+            />
+            <button
+              type="button"
+              className="secondaryButton"
+              onClick={() => removeListItem(key, index)}
+              disabled={items.length <= 1}
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -123,9 +279,9 @@ export default function ServicesPage() {
               onChange={imageUrl => setServiceForm({...serviceForm, imageUrl})}
             />
             <Field
-              label="Price (PKR)"
+              label="Minimum Price (PKR)"
               type="number"
-              value={String(serviceForm.price || '')}
+              value={String(minimumWorkPrice || serviceForm.price || '')}
               onChange={price =>
                 setServiceForm({...serviceForm, price: Number(price)})
               }
@@ -141,6 +297,55 @@ export default function ServicesPage() {
                 })
               }
             />
+            <div className="field fieldWide workPriceEditor">
+              <div className="workPriceHeader">
+                <span>Specific Work / Dynamic Prices</span>
+                <button type="button" className="ghostButton" onClick={addWorkPrice}>
+                  <Plus size={15} />
+                  Add Work
+                </button>
+              </div>
+              {workPrices.map((work, index) => (
+                <div className="workPriceRow" key={index}>
+                  <ImagePickerField
+                    label="Work Image"
+                    value={work.imageUrl}
+                    onChange={imageUrl => updateWorkPrice(index, {imageUrl})}
+                  />
+                  <input
+                    value={work.title || ''}
+                    onChange={event =>
+                      updateWorkPrice(index, {title: event.target.value})
+                    }
+                    placeholder="Work name, e.g. Breaker replacement"
+                  />
+                  <input
+                    value={work.description || ''}
+                    onChange={event =>
+                      updateWorkPrice(index, {description: event.target.value})
+                    }
+                    placeholder="Short note shown in app"
+                  />
+                  <input
+                    type="number"
+                    value={String(work.price || '')}
+                    onChange={event =>
+                      updateWorkPrice(index, {price: Number(event.target.value)})
+                    }
+                    placeholder="Price"
+                  />
+                  <button
+                    type="button"
+                    className="secondaryButton"
+                    onClick={() => removeWorkPrice(index)}
+                    disabled={workPrices.length <= 1}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ))}
+              <small>Our Services shows the minimum price: {money(minimumWorkPrice)}</small>
+            </div>
             <Field
               label="Duration"
               value={serviceForm.duration || ''}
@@ -175,36 +380,21 @@ export default function ServicesPage() {
                 }
               />
             </label>
-            <Field
-              label="Specific Work / Includes, comma separated"
-              value={(serviceForm.includes || []).join(', ')}
-              onChange={value =>
-                setServiceForm({
-                  ...serviceForm,
-                  includes: value.split(',').map(item => item.trim()),
-                })
-              }
-            />
-            <Field
-              label="Service Detail Checkmarks, comma separated"
-              value={(serviceForm.details || []).join(', ')}
-              onChange={value =>
-                setServiceForm({
-                  ...serviceForm,
-                  details: value.split(',').map(item => item.trim()),
-                })
-              }
-            />
-            <Field
-              label="Excludes, comma separated"
-              value={(serviceForm.excludes || []).join(', ')}
-              onChange={value =>
-                setServiceForm({
-                  ...serviceForm,
-                  excludes: value.split(',').map(item => item.trim()),
-                })
-              }
-            />
+            {renderListEditor(
+              'includes',
+              'Specific Work / Includes',
+              'e.g. Breaker inspection',
+            )}
+            {renderListEditor(
+              'details',
+              'Service Detail Checkmarks',
+              'e.g. Faulty breaker point inspected',
+            )}
+            {renderListEditor(
+              'excludes',
+              'Excludes',
+              'e.g. Breaker/MCB cost',
+            )}
           </div>
 
           <div className="mobilePreview">
@@ -229,7 +419,7 @@ export default function ServicesPage() {
                     'Service description appears here exactly like the mobile app card.'}
                 </p>
                 <div className="appServiceFooter">
-                  <b>{money(Number(serviceForm.price || 0))}</b>
+                  <b>{money(minimumWorkPrice)}</b>
                   <button>Book Service</button>
                 </div>
               </div>
@@ -259,7 +449,7 @@ export default function ServicesPage() {
               <span>{service.categoryId}</span>
               <strong>{service.title}</strong>
               <small>
-                {money(service.price)} - {service.duration}
+                {money(service.price)} min - {service.duration}
               </small>
             </button>
           ))}
@@ -268,3 +458,4 @@ export default function ServicesPage() {
     </AdminShell>
   );
 }
+

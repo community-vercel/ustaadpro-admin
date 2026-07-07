@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
@@ -6,6 +6,7 @@ import type {ReactNode} from 'react';
 import {useEffect, useState} from 'react';
 import {
   ClipboardList,
+  ReceiptText,
   LayoutDashboard,
   Settings,
   Users,
@@ -32,6 +33,7 @@ type NavItem = {
 const navItems: NavItem[] = [
   {href: '/', label: 'Overview', Icon: LayoutDashboard},
   {href: '/orders', label: 'Orders', Icon: ClipboardList},
+  {href: '/payment-receipts', label: 'Payment Receipts', Icon: ReceiptText},
   {href: '/services', label: 'Services', Icon: Wrench},
   {href: '/subscriptions', label: 'Subscriptions', Icon: Package},
   {href: '/shop-products', label: 'Shop Products', Icon: ShoppingBag},
@@ -194,3 +196,4 @@ export function AdminShell({
     </main>
   );
 }
+

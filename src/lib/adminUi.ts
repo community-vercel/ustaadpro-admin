@@ -56,6 +56,7 @@ export const emptyService: Partial<AdminService> = {
   ],
   includes: [''],
   excludes: [''],
+  workPrices: [{title: '', description: '', price: 0, sortOrder: 0}],
 };
 
 export const emptySlide: Partial<AdminHomeSlide> = {

@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   color-scheme: light;
   --bg: #f5f7fb;
   --panel: #ffffff;
@@ -285,6 +285,60 @@ select {
 .fieldWide {
   grid-column: span 3;
 }
+.workPriceEditor {
+  gap: 10px;
+}
+
+.workPriceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workPriceRow {
+  display: grid;
+  grid-template-columns: 150px 1.2fr 1fr 110px 44px;
+  gap: 8px;
+  align-items: center;
+}
+
+.workPriceRow input {
+  width: 100%;
+  min-width: 0;
+}
+.workPriceRow .imageUpload {
+  gap: 6px;
+}
+
+.workPriceRow .imageUpload input {
+  padding: 8px;
+  font-size: 11px;
+}
+
+.workPriceRow .imageUpload img {
+  height: 72px;
+}
+
+.workPriceEditor small {
+  color: var(--muted);
+  font-weight: 800;
+}
+.listEditor {
+  gap: 10px;
+}
+
+.listEditorRow {
+  display: grid;
+  grid-template-columns: 1fr 44px;
+  gap: 8px;
+  align-items: center;
+}
+
+.listEditorRow input {
+  width: 100%;
+  min-width: 0;
+}
 
 .field span {
   color: var(--muted);
@@ -479,7 +533,7 @@ select.statusSelectCancelled {
   gap: 12px;
 }
 
-/* ── Order filter pill bar ── */
+/* Order filter pill bar */
 .orderFilterBar {
   display: flex;
   gap: 10px;
@@ -1260,4 +1314,41 @@ select.statusSelectCancelled {
   .dashboardCharts .wideChart {
     grid-column: span 1;
   }
+}
+
+
+
+
+.receiptLayout {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 16px;
+  align-items: start;
+  margin-top: 14px;
+}
+
+.receiptImage {
+  width: 180px;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #f8fbff;
+}
+
+.receiptDetails {
+  display: grid;
+  gap: 8px;
+  color: var(--ink);
+}
+
+.receiptDetails p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.receiptDetails small {
+  color: var(--muted);
+  line-height: 1.5;
 }
