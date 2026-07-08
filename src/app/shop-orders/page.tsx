@@ -1,6 +1,7 @@
-'use client';
+﻿'use client';
 
 import {useEffect, useState} from 'react';
+import Link from 'next/link';
 import {RefreshCw, ShoppingCart} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
 import {
@@ -128,24 +129,29 @@ export default function ShopOrdersPage() {
                 </div>
               )}
 
-              <label className="field compactField">
-                <span>Status</span>
-                <select
-                  value={order.status}
-                  onChange={event =>
-                    updateStatus(
-                      order.id,
-                      event.target.value as AdminShopOrder['status'],
-                    )
-                  }
-                >
-                  {statuses.map(status => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="shopOrderActions">
+                <label className="field compactField">
+                  <span>Status</span>
+                  <select
+                    value={order.status}
+                    onChange={event =>
+                      updateStatus(
+                        order.id,
+                        event.target.value as AdminShopOrder['status'],
+                      )
+                    }
+                  >
+                    {statuses.map(status => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <Link className="ghostButton compactButton" href={`/shop-orders/${order.id}`}>
+                  View order
+                </Link>
+              </div>
             </article>
           ))}
         </div>
@@ -153,3 +159,4 @@ export default function ShopOrdersPage() {
     </AdminShell>
   );
 }
+
