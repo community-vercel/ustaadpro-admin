@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   color-scheme: light;
   --bg: #f5f7fb;
   --panel: #ffffff;
@@ -286,6 +286,63 @@ select {
   grid-column: span 3;
 }
 
+.workPriceEditor {
+  gap: 10px;
+}
+
+.workPriceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workPriceRow {
+  display: grid;
+  grid-template-columns: 150px 1.2fr 1fr 110px 44px;
+  gap: 8px;
+  align-items: center;
+}
+
+.workPriceRow input {
+  width: 100%;
+  min-width: 0;
+}
+
+.workPriceRow .imageUpload {
+  gap: 6px;
+}
+
+.workPriceRow .imageUpload input {
+  padding: 8px;
+  font-size: 11px;
+}
+
+.workPriceRow .imageUpload img {
+  height: 72px;
+}
+
+.workPriceEditor small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.listEditor {
+  gap: 10px;
+}
+
+.listEditorRow {
+  display: grid;
+  grid-template-columns: 1fr 44px;
+  gap: 8px;
+  align-items: center;
+}
+
+.listEditorRow input {
+  width: 100%;
+  min-width: 0;
+}
+
 .field span {
   color: var(--muted);
   font-size: 12px;
@@ -479,7 +536,7 @@ select.statusSelectCancelled {
   gap: 12px;
 }
 
-/* ── Order filter pill bar ── */
+/* Order filter pill bar */
 .orderFilterBar {
   display: flex;
   gap: 10px;
@@ -1258,16 +1315,28 @@ select.statusSelectCancelled {
   .dashboardCharts {
     grid-template-columns: 1fr;
   }
+
   .dashboardCharts .wideChart {
     grid-column: span 1;
   }
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.6; transform: scale(1.15); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.6;
+    transform: scale(1.15);
+  }
 }

@@ -39,6 +39,27 @@ type Tab = 'dashboard' | 'services' | 'bookings' | 'sessions';
 export default function WhatsAppBotClient() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
 
+  const formatPhoneNumber = (userId: string) => {
+    if (!userId) return '';
+    
+    let raw = String(userId).replace(/@(c\.us|lid)$/, '').replace(/[\s-]/g, '');
+
+    if (raw.startsWith('+92')) raw = raw.slice(1);
+
+    // Handle standard 12-digit PK number (e.g., 923357808793)
+    if (raw.startsWith('92') && raw.length === 12) {
+      return `+92 ${raw.slice(2, 5)} ${raw.slice(5)}`;
+    }
+
+    // Handle 03xx format (e.g., 03001234567)
+    if (raw.startsWith('03') && raw.length === 11) {
+      return `+92 ${raw.slice(1, 4)} ${raw.slice(4)}`;
+    }
+
+    // Display whatever the raw string is without the @lid / @c.us suffix
+    return userId;
+  };
+
   // States
   const [stats, setStats] = useState<BotStat | null>(null);
   const [services, setServices] = useState<BotService[]>([]);
@@ -459,7 +480,7 @@ export default function WhatsAppBotClient() {
               .map((b, i) => (
                 <div key={(b.id || b._id || 'booking') + '-' + i} className="userRow" style={{ gridTemplateColumns: '1.1fr 1fr 1.4fr 0.9fr 1.6fr 1.1fr auto' }}>
                   <span>{new Date(b.createdAt || '').toLocaleString()}</span>
-                  <span>{b.userId}</span>
+                  <span>{formatPhoneNumber(b.customer_phone || b.customerPhone || b.userId)}</span>
                   <span>{b.mainCategory} - {b.serviceType}<br /><small>{b.subService}</small></span>
                   <span>{b.date} <br /><small>{b.time}</small></span>
                   <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -528,13 +549,18 @@ export default function WhatsAppBotClient() {
               <strong>Current Step</strong>
               <strong>Last Updated</strong>
             </div>
-            {sessions.map((s, i) => (
-              <div key={(s.userId || 'session') + '-' + i} className="userRow" style={{ gridTemplateColumns: '1fr 2fr 1fr' }}>
-                <span>{s.userId}</span>
-                <span>{s.step}</span>
-                <span>{new Date(s.updatedAt).toLocaleString()}</span>
-              </div>
-            ))}
+            {sessions.map((s, i) => {
+              const uId = s.user_id || s.userId || 'session';
+              const phone = s.order_details?.customerPhone || s.order_details?.customer_phone || uId;
+              const dateStr = s.updatedAt || s.updated_at || '';
+              return (
+                <div key={uId + '-' + i} className="userRow" style={{ gridTemplateColumns: '1fr 2fr 1fr' }}>
+                  <span>{formatPhoneNumber(phone)}</span>
+                  <span>{s.step}</span>
+                  <span>{dateStr ? new Date(dateStr).toLocaleString() : ''}</span>
+                </div>
+              );
+            })}
             {sessions.length === 0 && <div className="empty">No active sessions.</div>}
           </div>
         </div>

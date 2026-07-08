@@ -1,5 +1,5 @@
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.ustaadpro.pk/api';
 const PUBLIC_API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 
 export function resolveApiAssetUrl(url?: string) {
@@ -60,12 +60,44 @@ export interface AdminOrder {
     duration: string;
     categoryId: string;
     serviceType?: string;
+    serviceWorkPriceId?: number | null;
+    serviceWorkTitle?: string | null;
     imageUrl?: string;
     detailDescription?: string;
     details?: string[];
     quantity: number;
     price: number;
   }>;
+}
+
+export interface AdminPaymentReceipt {
+  id: number;
+  orderId: string;
+  userId: number;
+  receiptUrl: string;
+  amount: number;
+  accountNumber: string;
+  accountTitle: string;
+  status: string;
+  createdAt: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  orderTotal: number;
+  orderStatus: string;
+  bookedFor: string;
+  paymentMethod: string;
+  address: string;
+  items: AdminOrder['items'];
+}
+export interface AdminServiceWorkPrice {
+  id?: number;
+  serviceId?: string;
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  price: number;
+  sortOrder?: number;
 }
 
 export interface AdminService {
@@ -85,6 +117,7 @@ export interface AdminService {
   details?: string[];
   includes: string[];
   excludes: string[];
+  workPrices?: AdminServiceWorkPrice[];
 }
 
 export interface AdminHomeSlide {
@@ -237,6 +270,9 @@ export function deleteUser(id: number) {
   });
 }
 
+export function getPaymentReceipts() {
+  return request<AdminPaymentReceipt[]>('/admin/payment-receipts');
+}
 export function getServices() {
   return request<AdminService[]>('/admin/services');
 }
@@ -368,7 +404,7 @@ export function sendBroadcastNotification(input: {
   });
 }
 
-// ─── WHATSAPP BOT API TYPES & METHODS ───
+// â”€â”€â”€ WHATSAPP BOT API TYPES & METHODS â”€â”€â”€
 
 export interface BotStat {
   totalBookings: number;
@@ -398,6 +434,8 @@ export interface BotBooking {
   subService: string;
   date: string;
   time: string;
+  customerPhone?: string;
+  customer_phone?: string;
   address?: string;
   addressType?: string;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
@@ -405,9 +443,12 @@ export interface BotBooking {
 }
 
 export interface BotSession {
-  userId: string;
+  userId?: string;
+  user_id?: string;
   step: string;
-  updatedAt: string;
+  updatedAt?: string;
+  updated_at?: string;
+  order_details?: any;
 }
 
 export function getBotStats() {
@@ -459,8 +500,7 @@ export interface BotConnectionStatus {
   phone?: string | null;
 }
 
-const BOT_API_BASE_URL = API_BASE_URL;
-
+const BOT_API_BASE_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:5000';
 async function botRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const base = BOT_API_BASE_URL.replace(/\/api\/?$/, '');
   const finalPath = path.startsWith('/api') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`;
@@ -488,4 +528,3 @@ export function startBot() {
 export function stopBot() {
   return botRequest<{ success: boolean; message: string }>('/bot/stop', { method: 'POST' });
 }
-
