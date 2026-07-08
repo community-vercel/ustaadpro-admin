@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   color-scheme: light;
   --bg: #f5f7fb;
   --panel: #ffffff;
@@ -1335,13 +1335,12 @@ select.statusSelectCancelled {
     transform: scale(1);
   }
 
-<<<<<<< HEAD
   50% {
     opacity: 0.6;
     transform: scale(1.15);
   }
 }
-=======
+
 .receiptDetails p {
   margin: 0;
   color: var(--muted);
@@ -1772,4 +1771,3 @@ select.statusSelectCancelled {
     white-space: normal;
   }
 }
->>>>>>> 8da2c22feb0c3b050cf4b0924260d0dc663f1449

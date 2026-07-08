@@ -500,9 +500,15 @@ export interface BotConnectionStatus {
   phone?: string | null;
 }
 
-const BOT_API_BASE_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:5000';
 async function botRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const base = BOT_API_BASE_URL.replace(/\/api\/?$/, '');
+  let base = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:5000';
+  if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_BOT_API_URL) {
+    // If we're in the browser and no explicit env var is set, use the same host but port 5000
+    const { protocol, hostname } = window.location;
+    base = `${protocol}//${hostname}:5000`;
+  }
+  base = base.replace(/\/api\/?$/, '');
+
   const finalPath = path.startsWith('/api') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`;
   
   const response = await fetch(`${base}${finalPath}`, {
