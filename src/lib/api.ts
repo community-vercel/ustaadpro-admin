@@ -501,25 +501,24 @@ export interface BotConnectionStatus {
 }
 
 async function botRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  let base = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:5000';
-  
-  if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_BOT_API_URL) {
-    // If we're in the browser and no explicit env var is set, use the same host but port 5000
-    const { protocol, hostname } = window.location;
-    base = `${protocol}//${hostname}:5000`;
-  }
-  
-  // ensure no trailing slash
+  // Default to the main API origin if BOT API URL isn't explicitly set
+  let base = process.env.NEXT_PUBLIC_BOT_API_URL || 'https://api.ustaadpro.pk';
+
+  // ensure no trailing slash or /api at the end of base
   base = base.replace(/\/api\/?$/, '').replace(/\/+$/, '');
 
+  // finalPath should be /api/bot/...
   const finalPath = path.startsWith('/api') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`;
 
-  const response = await fetch(`${base}${finalPath}`, {
+  // This ensures it builds https://api.ustaadpro.pk/api/bot/... safely
+  const url = `${base}${finalPath}`;
+  
+  const response = await fetch(url, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
     cache: 'no-store',
   });
-  
+
   if (!response.ok) {
     const body = await response.json().catch(() => null);
     throw new Error(body?.message || `Request failed: ${response.status}`);
