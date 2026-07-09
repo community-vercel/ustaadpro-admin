@@ -371,6 +371,34 @@ select.statusSelectCancelled {
   min-height: 90px;
   resize: vertical;
 }
+.passwordInputWrap {
+  position: relative;
+}
+
+.passwordInputWrap input {
+  padding-right: 44px;
+}
+
+.passwordToggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 34px;
+  height: 34px;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.passwordToggle:hover {
+  background: #f3f6fb;
+  color: var(--ink);
+}
 
 .imageUpload input {
   padding: 9px 12px;
