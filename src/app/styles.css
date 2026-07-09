@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   color-scheme: light;
   --bg: #f5f7fb;
   --panel: #ffffff;
@@ -285,6 +285,7 @@ select {
 .fieldWide {
   grid-column: span 3;
 }
+
 .workPriceEditor {
   gap: 10px;
 }
@@ -307,6 +308,7 @@ select {
   width: 100%;
   min-width: 0;
 }
+
 .workPriceRow .imageUpload {
   gap: 6px;
 }
@@ -324,6 +326,7 @@ select {
   color: var(--muted);
   font-weight: 800;
 }
+
 .listEditor {
   gap: 10px;
 }
@@ -1307,39 +1310,35 @@ select.statusSelectCancelled {
   width: 100%;
 }
 
+
 @media (max-width: 900px) {
   .dashboardCharts {
     grid-template-columns: 1fr;
   }
+
   .dashboardCharts .wideChart {
     grid-column: span 1;
   }
 }
 
-
-
-
-.receiptLayout {
-  display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 16px;
-  align-items: start;
-  margin-top: 14px;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.receiptImage {
-  width: 180px;
-  height: 180px;
-  object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  background: #f8fbff;
-}
+@keyframes pulse {
 
-.receiptDetails {
-  display: grid;
-  gap: 8px;
-  color: var(--ink);
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.6;
+    transform: scale(1.15);
+  }
 }
 
 .receiptDetails p {

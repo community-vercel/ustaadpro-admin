@@ -14,6 +14,10 @@ import {
   BotService,
   BotBooking,
   BotSession,
+  getBotConnectionStatus,
+  startBot,
+  stopBot,
+  BotConnectionStatus,
 } from '@/lib/api';
 import {
   MessageSquare,
@@ -35,6 +39,27 @@ type Tab = 'dashboard' | 'services' | 'bookings' | 'sessions';
 export default function WhatsAppBotClient() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
 
+  const formatPhoneNumber = (userId: string) => {
+    if (!userId) return '';
+    
+    let raw = String(userId).replace(/@(c\.us|lid)$/, '').replace(/[\s-]/g, '');
+
+    if (raw.startsWith('+92')) raw = raw.slice(1);
+
+    // Handle standard 12-digit PK number (e.g., 923357808793)
+    if (raw.startsWith('92') && raw.length === 12) {
+      return `+92 ${raw.slice(2, 5)} ${raw.slice(5)}`;
+    }
+
+    // Handle 03xx format (e.g., 03001234567)
+    if (raw.startsWith('03') && raw.length === 11) {
+      return `+92 ${raw.slice(1, 4)} ${raw.slice(4)}`;
+    }
+
+    // Display whatever the raw string is without the @lid / @c.us suffix
+    return userId;
+  };
+
   // States
   const [stats, setStats] = useState<BotStat | null>(null);
   const [services, setServices] = useState<BotService[]>([]);
@@ -54,6 +79,74 @@ export default function WhatsAppBotClient() {
   const showNotice = (msg: string) => {
     setNotice(msg);
     setTimeout(() => setNotice(''), 3000);
+  };
+
+  // Connection State
+  const [connectionStatus, setConnectionStatus] = useState<BotConnectionStatus | null>(null);
+  const [connectionLoading, setConnectionLoading] = useState(false);
+  const [qrRefreshing, setQrRefreshing] = useState(false);
+  const [pollPaused, setPollPaused] = useState(false);
+
+  const loadConnectionStatus = async (silent = true) => {
+    try {
+      if (!silent) setConnectionLoading(true);
+      const data = await getBotConnectionStatus();
+      console.log('Poll Status Response:', data);
+      setConnectionStatus(data);
+    } catch (err: any) {
+      console.error('Failed to get bot status', err);
+    } finally {
+      if (!silent) setConnectionLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadConnectionStatus(false);
+    const interval = setInterval(() => {
+      if (!pollPaused) loadConnectionStatus(true);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [pollPaused]);
+
+  const handleStartBot = async () => {
+    try {
+      setQrRefreshing(true);
+      console.log('Sending startBot request...');
+      const data = await startBot();
+      console.log('StartBot Response:', data);
+      
+      setConnectionStatus(prev => ({
+        ...prev,
+        status: data.status as any,
+        qr: data.qr,
+        phone: data.phone
+      }));
+    } catch (err: any) {
+      console.error('startBot Error:', err);
+      alert(err.message || 'Failed to start bot');
+    } finally {
+      setQrRefreshing(false);
+    }
+  };
+
+  const handleStopBot = async () => {
+    if (!confirm('Are you sure you want to disconnect the bot?')) return;
+    try {
+      setConnectionLoading(true);
+      // Pause polling so it doesn't overwrite our offline state immediately
+      setPollPaused(true);
+      await stopBot();
+      // Fully reset connection state: status offline, no QR, no phone
+      setConnectionStatus({ status: 'offline', qr: null, phone: null });
+      showNotice('Bot disconnected');
+      // Resume polling after 4 seconds (server needs time to settle)
+      setTimeout(() => setPollPaused(false), 4000);
+    } catch (err: any) {
+      setPollPaused(false);
+      alert(err.message || 'Failed to stop bot');
+    } finally {
+      setConnectionLoading(false);
+    }
   };
 
   const loadDashboard = async () => {
@@ -178,6 +271,78 @@ export default function WhatsAppBotClient() {
       {notice && <div className="notice">{notice}</div>}
       {error && <div className="cancelReasonBox"><p>{error}</p></div>}
 
+      <div className="panel" style={{ marginBottom: 24 }}>
+        <div className="panelHead" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <h3>WhatsApp Connection Status</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, padding: '4px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.05)' }}>
+              <div style={{
+                width: 10, height: 10, borderRadius: '50%',
+                backgroundColor: connectionStatus?.status === 'online' ? '#22c55e' :
+                                 connectionStatus?.status === 'connecting' || connectionStatus?.status === 'starting' ? '#eab308' : '#ef4444',
+                boxShadow: (connectionStatus?.status === 'starting') ? '0 0 0 3px rgba(234,179,8,0.3)' : 'none',
+                animation: connectionStatus?.status === 'starting' ? 'pulse 1.5s ease-in-out infinite' : 'none'
+              }} />
+              <span style={{ textTransform: 'capitalize' }}>
+                {connectionStatus?.status || 'Loading...'}
+              </span>
+            </div>
+          </div>
+          {connectionStatus?.status === 'online' && connectionStatus?.phone && (
+            <div style={{ fontSize: 14, color: 'var(--muted)' }}>
+              Connected Number: <strong>{connectionStatus.phone}</strong>
+            </div>
+          )}
+        </div>
+
+        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+
+          {/* Starting spinner */}
+          {connectionStatus?.status === 'starting' && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '16px 32px', borderRadius: 12, background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)' }}>
+              <div style={{ width: 36, height: 36, border: '3px solid rgba(234,179,8,0.3)', borderTop: '3px solid #eab308', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <div style={{ color: '#eab308', fontWeight: 600, fontSize: 14 }}>Starting bot — Puppeteer is launching, please wait…</div>
+              <div style={{ color: 'var(--muted)', fontSize: 12 }}>This can take 30–60 seconds on first start</div>
+            </div>
+          )}
+
+          {/* QR code */}
+          {connectionStatus?.qr && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, background: '#fff', padding: 16, borderRadius: 12 }}>
+              <img
+                src={connectionStatus.qr.startsWith('data:') ? connectionStatus.qr : `data:image/png;base64,${connectionStatus.qr}`}
+                alt="WhatsApp QR Code"
+                style={{ width: 300, height: 300, objectFit: 'contain' }}
+              />
+              <div style={{ color: '#000', fontWeight: 600, fontSize: 16 }}>Scan with WhatsApp to connect</div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 12 }}>
+            {/* Show QR button — only when offline and not starting */}
+            {!connectionStatus?.qr && connectionStatus?.status !== 'online' && connectionStatus?.status !== 'starting' && (
+              <button className="primaryButton" onClick={handleStartBot} disabled={qrRefreshing}>
+                {qrRefreshing ? 'Loading...' : 'Show QR Code'}
+              </button>
+            )}
+
+            {/* Refresh QR button */}
+            {connectionStatus?.qr && connectionStatus?.status !== 'online' && (
+              <button className="secondaryButton" onClick={handleStartBot} disabled={qrRefreshing}>
+                {qrRefreshing ? 'Refreshing...' : 'Refresh QR'}
+              </button>
+            )}
+
+            {/* Disconnect — also shown while starting so user can cancel */}
+            {(connectionStatus?.status === 'online' || connectionStatus?.status === 'connecting' || connectionStatus?.status === 'starting') && (
+              <button className="primaryButton" style={{ background: '#ef4444', borderColor: '#ef4444', color: '#fff' }} onClick={handleStopBot} disabled={connectionLoading}>
+                {connectionLoading ? 'Disconnecting...' : 'Disconnect Bot'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="orderFilterBar" style={{ marginBottom: 24 }}>
         {(['dashboard', 'services', 'bookings', 'sessions'] as Tab[]).map((tab) => (
           <button
@@ -301,22 +466,56 @@ export default function WhatsAppBotClient() {
             </select>
           </div>
           <div className="userTable">
-            <div className="userRow" style={{ gridTemplateColumns: '1.2fr 1fr 1.5fr 1fr 1.2fr auto' }}>
+            <div className="userRow" style={{ gridTemplateColumns: '1.1fr 1fr 1.4fr 0.9fr 1.6fr 1.1fr auto' }}>
               <strong>Date</strong>
               <strong>User</strong>
               <strong>Service</strong>
               <strong>Visit</strong>
+              <strong>Address</strong>
               <strong>Status</strong>
               <strong>Actions</strong>
             </div>
             {bookings
               .filter(b => bookingFilter === 'all' || b.status === bookingFilter)
               .map((b, i) => (
-                <div key={(b.id || b._id || 'booking') + '-' + i} className="userRow" style={{ gridTemplateColumns: '1.2fr 1fr 1.5fr 1fr 1.2fr auto' }}>
+                <div key={(b.id || b._id || 'booking') + '-' + i} className="userRow" style={{ gridTemplateColumns: '1.1fr 1fr 1.4fr 0.9fr 1.6fr 1.1fr auto' }}>
                   <span>{new Date(b.createdAt || '').toLocaleString()}</span>
-                  <span>{b.userId}</span>
+                  <span>{formatPhoneNumber(b.customer_phone || b.customerPhone || b.userId)}</span>
                   <span>{b.mainCategory} - {b.serviceType}<br /><small>{b.subService}</small></span>
                   <span>{b.date} <br /><small>{b.time}</small></span>
+                  <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {b.address ? (
+                      <>
+                        <span
+                          title={b.address}
+                          style={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            fontSize: 13,
+                            lineHeight: '1.4',
+                          }}
+                        >
+                          {b.address}
+                        </span>
+                        {b.addressType && b.addressType !== 'text' && (
+                          <span style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            color: 'var(--accent)',
+                            opacity: 0.8,
+                          }}>
+                            {b.addressType}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span style={{ color: 'var(--muted)', fontSize: 12 }}>—</span>
+                    )}
+                  </span>
                   <select
                     value={b.status}
                     onChange={e => handleUpdateBookingStatus(b.id || b._id || '', e.target.value as any)}
@@ -350,13 +549,18 @@ export default function WhatsAppBotClient() {
               <strong>Current Step</strong>
               <strong>Last Updated</strong>
             </div>
-            {sessions.map((s, i) => (
-              <div key={(s.userId || 'session') + '-' + i} className="userRow" style={{ gridTemplateColumns: '1fr 2fr 1fr' }}>
-                <span>{s.userId}</span>
-                <span>{s.step}</span>
-                <span>{new Date(s.updatedAt).toLocaleString()}</span>
-              </div>
-            ))}
+            {sessions.map((s, i) => {
+              const uId = s.user_id || s.userId || 'session';
+              const phone = s.order_details?.customerPhone || s.order_details?.customer_phone || uId;
+              const dateStr = s.updatedAt || s.updated_at || '';
+              return (
+                <div key={uId + '-' + i} className="userRow" style={{ gridTemplateColumns: '1fr 2fr 1fr' }}>
+                  <span>{formatPhoneNumber(phone)}</span>
+                  <span>{s.step}</span>
+                  <span>{dateStr ? new Date(dateStr).toLocaleString() : ''}</span>
+                </div>
+              );
+            })}
             {sessions.length === 0 && <div className="empty">No active sessions.</div>}
           </div>
         </div>

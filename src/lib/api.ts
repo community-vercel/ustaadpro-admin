@@ -1,4 +1,4 @@
-﻿const API_BASE_URL =
+const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.ustaadpro.pk/api';
 const PUBLIC_API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 
@@ -217,7 +217,12 @@ export interface BroadcastNotificationResult {
 
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  // Ensure we don't duplicate /api if API_BASE_URL already has it,
+  // and make sure the path starts with /api
+  const base = API_BASE_URL.replace(/\/api\/?$/, '');
+  const finalPath = path.startsWith('/api') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`;
+
+  const response = await fetch(`${base}${finalPath}`, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
     cache: 'no-store',
@@ -429,28 +434,35 @@ export interface BotBooking {
   subService: string;
   date: string;
   time: string;
+  customerPhone?: string;
+  customer_phone?: string;
+  address?: string;
+  addressType?: string;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   createdAt?: string;
 }
 
 export interface BotSession {
-  userId: string;
+  userId?: string;
+  user_id?: string;
   step: string;
-  updatedAt: string;
+  updatedAt?: string;
+  updated_at?: string;
+  order_details?: any;
 }
 
 export function getBotStats() {
-  return request<BotStat>('/stats');
+  return botRequest<BotStat>('/stats');
 }
 
 export function getBotServices() {
-  return request<BotService[]>('/services');
+  return botRequest<BotService[]>('/services');
 }
 
 export function saveBotService(service: Partial<BotService>) {
   const id = service.id || service._id;
   const isUpdate = Boolean(id);
-  return request(
+  return botRequest(
     isUpdate ? `/services/${id}` : '/services',
     {
       method: isUpdate ? 'PUT' : 'POST',
@@ -460,30 +472,65 @@ export function saveBotService(service: Partial<BotService>) {
 }
 
 export function deleteBotService(id: string) {
-  return request(`/services/${id}`, {
-    method: 'DELETE',
-  });
+  return botRequest(`/services/${id}`, { method: 'DELETE' });
 }
 
 export function getBotBookings() {
-  return request<BotBooking[]>('/bookings');
+  return botRequest<BotBooking[]>('/bookings');
 }
 
 export function updateBotBookingStatus(id: string, status: BotBooking['status']) {
-  return request(`/bookings/${id}`, {
+  return botRequest(`/bookings/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ status }),
   });
 }
 
 export function deleteBotBooking(id: string) {
-  return request(`/bookings/${id}`, {
-    method: 'DELETE',
-  });
+  return botRequest(`/bookings/${id}`, { method: 'DELETE' });
 }
 
 export function getBotSessions() {
-  return request<BotSession[]>('/sessions');
+  return botRequest<BotSession[]>('/sessions');
 }
 
+export interface BotConnectionStatus {
+  status: 'online' | 'offline' | 'connecting' | 'starting';
+  qr?: string | null;
+  phone?: string | null;
+}
 
+async function botRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  let base = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:5000';
+  if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_BOT_API_URL) {
+    // If we're in the browser and no explicit env var is set, use the same host but port 5000
+    const { protocol, hostname } = window.location;
+    base = `${protocol}//${hostname}:5000`;
+  }
+  base = base.replace(/\/api\/?$/, '');
+
+  const finalPath = path.startsWith('/api') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`;
+  
+  const response = await fetch(`${base}${finalPath}`, {
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.message || `Request failed: ${response.status}`);
+  }
+  return response.json();
+}
+
+export function getBotConnectionStatus() {
+  return botRequest<BotConnectionStatus>('/bot/status');
+}
+
+export function startBot() {
+  return botRequest<{ success: boolean; status: string; qr?: string | null; phone?: string | null }>('/bot/start', { method: 'POST' });
+}
+
+export function stopBot() {
+  return botRequest<{ success: boolean; message: string }>('/bot/stop', { method: 'POST' });
+}
