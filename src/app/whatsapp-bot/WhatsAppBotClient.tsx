@@ -41,7 +41,7 @@ export default function WhatsAppBotClient() {
 
   const formatPhoneNumber = (userId: string) => {
     if (!userId) return '';
-    
+
     let raw = String(userId).replace(/@(c\.us|lid)$/, '').replace(/[\s-]/g, '');
 
     if (raw.startsWith('+92')) raw = raw.slice(1);
@@ -85,28 +85,46 @@ export default function WhatsAppBotClient() {
   const [connectionStatus, setConnectionStatus] = useState<BotConnectionStatus | null>(null);
   const [connectionLoading, setConnectionLoading] = useState(false);
   const [qrRefreshing, setQrRefreshing] = useState(false);
+  // Track if polling should be suppressed (e.g. right after stopBot)
   const [pollPaused, setPollPaused] = useState(false);
 
   const loadConnectionStatus = async (silent = true) => {
     try {
       if (!silent) setConnectionLoading(true);
       const data = await getBotConnectionStatus();
-      console.log('Poll Status Response:', data);
-      setConnectionStatus(data);
+      setConnectionStatus(prev => {
+        let qr = data.qr;
+        // Preserve QR if polling returns null but we are still starting/connecting
+        if (!qr && prev?.qr && (data.status === 'starting' || data.status === 'connecting')) {
+          qr = prev.qr;
+        }
+        return { ...data, qr };
+      });
+      return data;
     } catch (err: any) {
       console.error('Failed to get bot status', err);
+      return null;
     } finally {
       if (!silent) setConnectionLoading(false);
     }
   };
 
+  // Poll only while bot is NOT online — stop as soon as it connects
   useEffect(() => {
+    // Initial fetch (non-silent so spinner shows)
     loadConnectionStatus(false);
-    const interval = setInterval(() => {
-      if (!pollPaused) loadConnectionStatus(true);
+
+    const interval = setInterval(async () => {
+      // Don't poll if paused (e.g. right after stopBot)
+      if (pollPaused) return;
+      // Don't poll if already online — no need to keep hammering the server
+      if (connectionStatus?.status === 'online') return;
+      await loadConnectionStatus(true);
     }, 5000);
+
     return () => clearInterval(interval);
-  }, [pollPaused]);
+  // Re-run when pollPaused changes or when status flips to/from 'online'
+  }, [pollPaused, connectionStatus?.status]);
 
   const handleStartBot = async () => {
     try {
@@ -114,7 +132,7 @@ export default function WhatsAppBotClient() {
       console.log('Sending startBot request...');
       const data = await startBot();
       console.log('StartBot Response:', data);
-      
+
       setConnectionStatus(prev => ({
         ...prev,
         status: data.status as any,
@@ -208,7 +226,7 @@ export default function WhatsAppBotClient() {
   const handleSaveService = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingService) return;
-    
+
     if (!editingService.optionsArray || editingService.optionsArray.length === 0) {
       alert('At least one service option is required.');
       return;
@@ -279,7 +297,7 @@ export default function WhatsAppBotClient() {
               <div style={{
                 width: 10, height: 10, borderRadius: '50%',
                 backgroundColor: connectionStatus?.status === 'online' ? '#22c55e' :
-                                 connectionStatus?.status === 'connecting' || connectionStatus?.status === 'starting' ? '#eab308' : '#ef4444',
+                  connectionStatus?.status === 'connecting' || connectionStatus?.status === 'starting' ? '#eab308' : '#ef4444',
                 boxShadow: (connectionStatus?.status === 'starting') ? '0 0 0 3px rgba(234,179,8,0.3)' : 'none',
                 animation: connectionStatus?.status === 'starting' ? 'pulse 1.5s ease-in-out infinite' : 'none'
               }} />
@@ -603,7 +621,7 @@ export default function WhatsAppBotClient() {
                     const newName = e.target.value;
                     let newMsg = editingService.msg;
                     if (!editingService.msgManuallyEdited) {
-                      newMsg = `*${newName || 'Service'} Services*\n\n` + (editingService.optionsArray || []).map((o:any, idx: number) => `${o.key || (idx+1)}. ${o.label}`).join('\n');
+                      newMsg = `*${newName || 'Service'} Services*\n\n` + (editingService.optionsArray || []).map((o: any, idx: number) => `${o.key || (idx + 1)}. ${o.label}`).join('\n');
                     }
                     setEditingService({ ...editingService, name: newName, msg: newMsg });
                   }}
@@ -613,12 +631,12 @@ export default function WhatsAppBotClient() {
               <div className="field fieldWide">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                   <span>WhatsApp Message Context (Sent to user)</span>
-                  <button 
-                    type="button" 
-                    className="ghostButton" 
-                    style={{ padding: '2px 8px', fontSize: 11, height: 'auto', minHeight: 24 }} 
+                  <button
+                    type="button"
+                    className="ghostButton"
+                    style={{ padding: '2px 8px', fontSize: 11, height: 'auto', minHeight: 24 }}
                     onClick={() => {
-                      const generatedMsg = `*${editingService.name || 'Service'} Services*\n\n` + (editingService.optionsArray || []).map((o:any, idx: number) => `${o.key || (idx+1)}. ${o.label}`).join('\n');
+                      const generatedMsg = `*${editingService.name || 'Service'} Services*\n\n` + (editingService.optionsArray || []).map((o: any, idx: number) => `${o.key || (idx + 1)}. ${o.label}`).join('\n');
                       setEditingService({ ...editingService, msg: generatedMsg, msgManuallyEdited: false });
                     }}
                   >
@@ -648,7 +666,7 @@ export default function WhatsAppBotClient() {
                           newOpts[i].key = e.target.value;
                           let newMsg = editingService.msg;
                           if (!editingService.msgManuallyEdited) {
-                             newMsg = `*${editingService.name || 'Service'} Services*\n\n` + newOpts.map((o:any, idx: number) => `${o.key || (idx+1)}. ${o.label}`).join('\n');
+                            newMsg = `*${editingService.name || 'Service'} Services*\n\n` + newOpts.map((o: any, idx: number) => `${o.key || (idx + 1)}. ${o.label}`).join('\n');
                           }
                           setEditingService({ ...editingService, optionsArray: newOpts, msg: newMsg });
                         }}
@@ -662,7 +680,7 @@ export default function WhatsAppBotClient() {
                           newOpts[i].label = e.target.value;
                           let newMsg = editingService.msg;
                           if (!editingService.msgManuallyEdited) {
-                             newMsg = `*${editingService.name || 'Service'} Services*\n\n` + newOpts.map((o:any, idx: number) => `${o.key || (idx+1)}. ${o.label}`).join('\n');
+                            newMsg = `*${editingService.name || 'Service'} Services*\n\n` + newOpts.map((o: any, idx: number) => `${o.key || (idx + 1)}. ${o.label}`).join('\n');
                           }
                           setEditingService({ ...editingService, optionsArray: newOpts, msg: newMsg });
                         }}
@@ -676,7 +694,7 @@ export default function WhatsAppBotClient() {
                           newOpts.splice(i, 1);
                           let newMsg = editingService.msg;
                           if (!editingService.msgManuallyEdited) {
-                             newMsg = `*${editingService.name || 'Service'} Services*\n\n` + newOpts.map((o:any, idx: number) => `${o.key || (idx+1)}. ${o.label}`).join('\n');
+                            newMsg = `*${editingService.name || 'Service'} Services*\n\n` + newOpts.map((o: any, idx: number) => `${o.key || (idx + 1)}. ${o.label}`).join('\n');
                           }
                           setEditingService({ ...editingService, optionsArray: newOpts, msg: newMsg });
                         }}
@@ -693,7 +711,7 @@ export default function WhatsAppBotClient() {
                       const newOpts = [...(editingService.optionsArray || []), { key: String((editingService.optionsArray?.length || 0) + 1), label: '' }];
                       let newMsg = editingService.msg;
                       if (!editingService.msgManuallyEdited) {
-                         newMsg = `*${editingService.name || 'Service'} Services*\n\n` + newOpts.map((o:any, idx: number) => `${o.key || (idx+1)}. ${o.label}`).join('\n');
+                        newMsg = `*${editingService.name || 'Service'} Services*\n\n` + newOpts.map((o: any, idx: number) => `${o.key || (idx + 1)}. ${o.label}`).join('\n');
                       }
                       setEditingService({
                         ...editingService,
