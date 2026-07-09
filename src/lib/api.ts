@@ -502,20 +502,24 @@ export interface BotConnectionStatus {
 
 async function botRequest<T>(path: string, init?: RequestInit): Promise<T> {
   let base = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:5000';
+  
   if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_BOT_API_URL) {
     // If we're in the browser and no explicit env var is set, use the same host but port 5000
     const { protocol, hostname } = window.location;
     base = `${protocol}//${hostname}:5000`;
   }
-  base = base.replace(/\/api\/?$/, '');
+  
+  // ensure no trailing slash
+  base = base.replace(/\/api\/?$/, '').replace(/\/+$/, '');
 
   const finalPath = path.startsWith('/api') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`;
-  
+
   const response = await fetch(`${base}${finalPath}`, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
     cache: 'no-store',
   });
+  
   if (!response.ok) {
     const body = await response.json().catch(() => null);
     throw new Error(body?.message || `Request failed: ${response.status}`);
