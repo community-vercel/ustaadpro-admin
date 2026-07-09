@@ -2,7 +2,7 @@
 
 import { FormEvent, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { LockKeyhole, LogIn } from 'lucide-react';
+import { Eye, EyeOff, LockKeyhole, LogIn } from 'lucide-react';
 
 export default function LoginPage() {
   return (
@@ -17,6 +17,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -82,14 +83,24 @@ function LoginForm() {
 
           <label className="field">
             <span>Password</span>
-            <input
-              autoComplete="current-password"
-              onChange={event => setPassword(event.target.value)}
-              placeholder="Enter password"
-              required
-              type="password"
-              value={password}
-            />
+            <div className="passwordInputWrap">
+              <input
+                autoComplete="current-password"
+                onChange={event => setPassword(event.target.value)}
+                placeholder="Enter password"
+                required
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+              />
+              <button
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="passwordToggle"
+                onClick={() => setShowPassword(current => !current)}
+                type="button"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </label>
 
           {error ? <p className="loginError">{error}</p> : null}

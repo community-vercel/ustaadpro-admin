@@ -371,6 +371,34 @@ select.statusSelectCancelled {
   min-height: 90px;
   resize: vertical;
 }
+.passwordInputWrap {
+  position: relative;
+}
+
+.passwordInputWrap input {
+  padding-right: 44px;
+}
+
+.passwordToggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 34px;
+  height: 34px;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.passwordToggle:hover {
+  background: #f3f6fb;
+  color: var(--ink);
+}
 
 .imageUpload input {
   padding: 9px 12px;
@@ -1311,6 +1339,346 @@ select.statusSelectCancelled {
 }
 
 
+
+
+/* Overview dashboard */
+.overviewHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.9fr);
+  gap: 18px;
+  align-items: stretch;
+  padding: 24px;
+  margin-bottom: 18px;
+  border: 1px solid #d8e3ee;
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(0, 108, 73, 0.94), rgba(8, 47, 73, 0.94)),
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.32), transparent 36%);
+  color: #ffffff;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.14);
+}
+
+.overviewHero .eyebrow,
+.overviewHero p {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.overviewHero h3 {
+  margin: 8px 0 8px;
+  font-size: clamp(34px, 5vw, 56px);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.overviewHeroStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-self: end;
+}
+
+.miniMetric {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+.miniMetric span,
+.enhancedStatCard small,
+.revenueSplitCard small,
+.statusLegendItem small,
+.activityMain p {
+  color: var(--muted);
+}
+
+.miniMetric span {
+  display: block;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.miniMetric strong {
+  display: block;
+  color: #ffffff;
+  font-size: 21px;
+  line-height: 1.15;
+}
+
+.overviewStatsGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.enhancedStatCard {
+  min-height: 150px;
+}
+
+.enhancedStatCard small {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.operationsGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.operationsPanel,
+.revenueSplitPanel {
+  min-height: 100%;
+}
+
+.opsRows,
+.revenueSplitCards,
+.overviewActivityList {
+  display: grid;
+  gap: 12px;
+}
+
+.opsRow {
+  display: grid;
+  gap: 9px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.opsRow > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.opsRow span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.opsRow strong {
+  font-size: 20px;
+  color: var(--text);
+}
+
+.opsTrack {
+  overflow: hidden;
+  height: 8px;
+  border-radius: 999px;
+  background: #e5e7eb;
+}
+
+.opsTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #006c49, #0ea5e9);
+}
+
+.revenueSplitCard {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.revenueSplitIcon,
+.activityTypeIcon {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: #006c49;
+  background: #ecfdf5;
+}
+
+.revenueSplitCard span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.revenueSplitCard strong {
+  display: block;
+  margin: 4px 0;
+  font-size: 24px;
+  color: var(--text);
+}
+
+.panelCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #334155;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.statusLegendGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.statusLegendItem {
+  display: grid;
+  grid-template-columns: 10px auto 1fr;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.statusLegendItem span {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.statusLegendItem strong {
+  color: var(--text);
+  font-size: 16px;
+}
+
+.statusLegendItem small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+
+.overviewActivityCard {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.activityMain {
+  min-width: 0;
+}
+
+.activityTopLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.activityTopLine strong,
+.activityAmount {
+  color: var(--text);
+}
+
+.activityTopLine strong,
+.activityMain p,
+.activityMeta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activityMain p {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.activityMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.activityAmount {
+  font-size: 18px;
+  white-space: nowrap;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: capitalize;
+  white-space: nowrap;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.status-confirmed,
+.status-assigned,
+.status-in_progress,
+.status-placed,
+.status-processing,
+.status-shipped {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.status-completed,
+.status-delivered {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+@media (max-width: 900px) {
+  .overviewHero,
+  .operationsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .overviewHeroStats,
+  .overviewStatsGrid,
+  .statusLegendGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .overviewActivityCard {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .activityAmount {
+    grid-column: 2;
+  }
+}
 @media (max-width: 900px) {
   .dashboardCharts {
     grid-template-columns: 1fr;
@@ -1547,6 +1915,7 @@ select.statusSelectCancelled {
   white-space: nowrap;
 }
 
+
 @media (max-width: 900px) {
   .receiptDetailHero,
   .receiptCardActions {
@@ -1617,6 +1986,7 @@ select.statusSelectCancelled {
   white-space: nowrap;
   background: #f8fbff;
 }
+
 
 @media (max-width: 900px) {
   .receiptToolbar {
@@ -1752,6 +2122,7 @@ select.statusSelectCancelled {
     grid-template-columns: 1fr;
   }
 }
+
 
 @media (max-width: 900px) {
   .shopOrderHero {
