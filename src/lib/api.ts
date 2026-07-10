@@ -501,7 +501,7 @@ export interface BotConnectionStatus {
 }
 
 async function botRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  let base = 'http://localhost:5000'; // DEFAULT for local development
+  let base = 'https://api.ustaadpro.pk'; // DEFAULT for local development
 
   if (typeof window !== 'undefined') {
     // Check if NOT running on localhost (i.e., production)
