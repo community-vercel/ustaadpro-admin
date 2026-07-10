@@ -451,7 +451,7 @@ export default function WhatsAppBotClient() {
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button className="secondaryButton" onClick={() => {
                     const optsArr = Object.entries(s.options || {}).map(([key, label]) => ({ key, label }));
-                    setEditingService({ ...s, optionsArray: optsArr, msgManuallyEdited: true });
+                    setEditingService({ ...s, optionsArray: optsArr, msgManuallyEdited: false });
                     setServiceModalOpen(true);
                   }}>
                     <Edit size={14} />
