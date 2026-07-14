@@ -456,14 +456,14 @@ export function getBotStats() {
 }
 
 export function getBotServices() {
-  return botRequest<BotService[]>('/services');
+  return botRequest<BotService[]>('/bot/services');
 }
 
 export function saveBotService(service: Partial<BotService>) {
   const id = service.id || service._id;
   const isUpdate = Boolean(id);
   return botRequest(
-    isUpdate ? `/services/${id}` : '/services',
+    isUpdate ? `/bot/services/${id}` : '/bot/services',
     {
       method: isUpdate ? 'PUT' : 'POST',
       body: JSON.stringify(service),
@@ -472,7 +472,7 @@ export function saveBotService(service: Partial<BotService>) {
 }
 
 export function deleteBotService(id: string) {
-  return botRequest(`/services/${id}`, { method: 'DELETE' });
+  return botRequest(`/bot/services/${id}`, { method: 'DELETE' });
 }
 
 export function getBotBookings() {
@@ -501,25 +501,26 @@ export interface BotConnectionStatus {
 }
 
 async function botRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  let base = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:5000';
-  if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_BOT_API_URL) {
-    // If we're in the browser and no explicit env var is set, use the same host but port 5000
-    const { protocol, hostname } = window.location;
-    base = `${protocol}//${hostname}:5000`;
-  }
-  base = base.replace(/\/api\/?$/, '');
+  let base = 'https://api.ustaadpro.pk'; // DEFAULT for local development
 
-  const finalPath = path.startsWith('/api') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`;
-  
+  if (typeof window !== 'undefined') {
+    // Check if NOT running on localhost (i.e., production)
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      base = 'https://api.ustaadpro.pk'; // Production URL
+    }
+  }
+
+  const finalPath = path.startsWith('/api') ? path : `/api${path}`;
+
+  console.log('🔧 botRequest URL:', `${base}${finalPath}`);
+
   const response = await fetch(`${base}${finalPath}`, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
     cache: 'no-store',
   });
-  if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    throw new Error(body?.message || `Request failed: ${response.status}`);
-  }
+
+  if (!response.ok) throw new Error(`Request failed: ${response.status}`);
   return response.json();
 }
 
