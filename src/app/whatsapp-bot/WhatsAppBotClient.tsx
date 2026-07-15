@@ -33,10 +33,12 @@ import {
   Calendar,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 type Tab = 'dashboard' | 'services' | 'bookings' | 'sessions';
 
 export default function WhatsAppBotClient() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
 
   const formatPhoneNumber = (userId: string) => {
@@ -68,6 +70,7 @@ export default function WhatsAppBotClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [qrModalOpen, setQrModalOpen] = useState(false);
 
   // Service Modal state
   const [serviceModalOpen, setServiceModalOpen] = useState(false);
@@ -126,6 +129,13 @@ export default function WhatsAppBotClient() {
   // Re-run when pollPaused changes or when status flips to/from 'online'
   }, [pollPaused, connectionStatus?.status]);
 
+  // Auto-close QR modal if bot goes online
+  useEffect(() => {
+    if (connectionStatus?.status === 'online') {
+      setQrModalOpen(false);
+    }
+  }, [connectionStatus?.status]);
+
   const handleStartBot = async () => {
     try {
       setQrRefreshing(true);
@@ -144,6 +154,13 @@ export default function WhatsAppBotClient() {
       alert(err.message || 'Failed to start bot');
     } finally {
       setQrRefreshing(false);
+    }
+  };
+
+  const handleShowQrClick = () => {
+    setQrModalOpen(true);
+    if (!connectionStatus?.qr && connectionStatus?.status !== 'starting' && connectionStatus?.status !== 'connecting') {
+      handleStartBot();
     }
   };
 
@@ -289,8 +306,34 @@ export default function WhatsAppBotClient() {
       {notice && <div className="notice">{notice}</div>}
       {error && <div className="cancelReasonBox"><p>{error}</p></div>}
 
-      <div className="panel" style={{ marginBottom: 24 }}>
-        <div className="panelHead" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="panel" style={{ marginBottom: 24, position: 'relative' }}>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            router.back();
+          }}
+          style={{
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            background: 'transparent',
+            border: 'none',
+            color: 'rgba(255,255,255,0.4)',
+            cursor: 'pointer',
+            padding: 4,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '4px',
+            transition: 'color 0.15s'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
+          onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
+        >
+          <X size={18} />
+        </button>
+        <div className="panelHead" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 48 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <h3>WhatsApp Connection Status</h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, padding: '4px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.05)' }}>
@@ -314,40 +357,11 @@ export default function WhatsAppBotClient() {
         </div>
 
         <div style={{ padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-
-          {/* Starting spinner */}
-          {connectionStatus?.status === 'starting' && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '16px 32px', borderRadius: 12, background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)' }}>
-              <div style={{ width: 36, height: 36, border: '3px solid rgba(234,179,8,0.3)', borderTop: '3px solid #eab308', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-              <div style={{ color: '#eab308', fontWeight: 600, fontSize: 14 }}>Starting bot — Puppeteer is launching, please wait…</div>
-              <div style={{ color: 'var(--muted)', fontSize: 12 }}>This can take 30–60 seconds on first start</div>
-            </div>
-          )}
-
-          {/* QR code */}
-          {connectionStatus?.qr && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, background: '#fff', padding: 16, borderRadius: 12 }}>
-              <img
-                src={connectionStatus.qr.startsWith('data:') ? connectionStatus.qr : `data:image/png;base64,${connectionStatus.qr}`}
-                alt="WhatsApp QR Code"
-                style={{ width: 300, height: 300, objectFit: 'contain' }}
-              />
-              <div style={{ color: '#000', fontWeight: 600, fontSize: 16 }}>Scan with WhatsApp to connect</div>
-            </div>
-          )}
-
           <div style={{ display: 'flex', gap: 12 }}>
-            {/* Show QR button — only when offline and not starting */}
-            {!connectionStatus?.qr && connectionStatus?.status !== 'online' && connectionStatus?.status !== 'starting' && (
-              <button className="primaryButton" onClick={handleStartBot} disabled={qrRefreshing}>
-                {qrRefreshing ? 'Loading...' : 'Show QR Code'}
-              </button>
-            )}
-
-            {/* Refresh QR button */}
-            {connectionStatus?.qr && connectionStatus?.status !== 'online' && (
-              <button className="secondaryButton" onClick={handleStartBot} disabled={qrRefreshing}>
-                {qrRefreshing ? 'Refreshing...' : 'Refresh QR'}
+            {/* Show QR button — only when offline */}
+            {connectionStatus?.status !== 'online' && (
+              <button className="primaryButton" onClick={handleShowQrClick} disabled={qrRefreshing}>
+                {qrRefreshing ? 'Loading...' : (connectionStatus?.qr || connectionStatus?.status === 'starting' || connectionStatus?.status === 'connecting') ? 'View QR Code' : 'Show QR Code'}
               </button>
             )}
 
@@ -742,6 +756,190 @@ export default function WhatsAppBotClient() {
                 <button type="submit" className="primaryButton" style={{ marginTop: 0 }}>Save Service</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {qrModalOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(6px)',
+          display: 'grid',
+          placeItems: 'center',
+          zIndex: 100,
+          padding: 20
+        }}>
+          <style>{`
+            @keyframes modalSpin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+          <div className="panel" style={{
+            width: '100%',
+            maxWidth: 400,
+            background: '#1a1a2e',
+            color: '#fff',
+            borderRadius: 16,
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4)',
+            margin: 0,
+            overflow: 'hidden',
+            position: 'relative'
+          }}>
+            {/* Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '16px 20px',
+              borderBottom: '1px solid rgba(255,255,255,0.08)'
+            }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>WhatsApp Connection</h3>
+              <button
+                type="button"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'rgba(255, 255, 255, 0.5)',
+                  cursor: 'pointer',
+                  padding: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '50%',
+                  transition: 'background-color 0.15s, color 0.15s'
+                }}
+                onClick={() => setQrModalOpen(false)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#fff';
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)';
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div style={{
+              padding: '24px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 20
+            }}>
+              {/* Starting/connecting state */}
+              {(connectionStatus?.status === 'starting' || qrRefreshing || !connectionStatus?.qr) && (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 16,
+                  padding: '30px 0'
+                }}>
+                  <div style={{
+                    width: 48,
+                    height: 48,
+                    border: '3px solid rgba(14, 165, 233, 0.2)',
+                    borderTop: '3px solid #0ea5e9',
+                    borderRadius: '50%',
+                    animation: 'modalSpin 1s linear infinite'
+                  }} />
+                  <p style={{ margin: 0, color: 'rgba(255,255,255,0.8)', fontWeight: 500, textAlign: 'center' }}>
+                    {connectionStatus?.status === 'starting' ? 'Launching Bot process...' : 'Generating secure QR Code...'}
+                  </p>
+                  <p style={{ margin: 0, color: 'rgba(255,255,255,0.4)', fontSize: 12, textAlign: 'center' }}>
+                    This may take up to 60 seconds on initial load.
+                  </p>
+                </div>
+              )}
+
+              {/* QR Image */}
+              {connectionStatus?.qr && !qrRefreshing && (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 16
+                }}>
+                  <div style={{
+                    background: '#fff',
+                    padding: 16,
+                    borderRadius: 12,
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                  }}>
+                    <img
+                      src={connectionStatus.qr.startsWith('data:') ? connectionStatus.qr : `data:image/png;base64,${connectionStatus.qr}`}
+                      alt="WhatsApp QR Code"
+                      style={{ width: 220, height: 220, objectFit: 'contain', display: 'block' }}
+                    />
+                  </div>
+                  <div style={{
+                    textAlign: 'center',
+                    color: 'rgba(255,255,255,0.9)',
+                    fontWeight: 600,
+                    fontSize: 15
+                  }}>
+                    Scan with WhatsApp
+                  </div>
+                  <div style={{
+                    textAlign: 'center',
+                    color: 'rgba(255,255,255,0.5)',
+                    fontSize: 13,
+                    maxWidth: 280
+                  }}>
+                    Open WhatsApp on your phone, go to Linked Devices, and scan this QR code to connect.
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div style={{
+              padding: '16px 20px',
+              borderTop: '1px solid rgba(255,255,255,0.08)',
+              background: 'rgba(255,255,255,0.01)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: 12
+            }}>
+              {connectionStatus?.qr && (
+                <button
+                  type="button"
+                  className="secondaryButton"
+                  onClick={handleStartBot}
+                  disabled={qrRefreshing}
+                  style={{ margin: 0 }}
+                >
+                  {qrRefreshing ? 'Refreshing...' : 'Refresh QR'}
+                </button>
+              )}
+              <button
+                type="button"
+                className="primaryButton"
+                style={{
+                  background: '#ef4444',
+                  borderColor: '#ef4444',
+                  color: '#fff',
+                  margin: 0
+                }}
+                onClick={async () => {
+                  await handleStopBot();
+                  setQrModalOpen(false);
+                }}
+                disabled={connectionLoading}
+              >
+                {connectionLoading ? 'Disconnecting...' : 'Disconnect'}
+              </button>
+            </div>
           </div>
         </div>
       )}
