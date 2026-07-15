@@ -479,12 +479,6 @@ export function getBotBookings() {
   return botRequest<BotBooking[]>('/bookings');
 }
 
-export function getBotBookingsTimeline() {
-  // Fetches timeline data for chart
-  return botRequest<{date: string, count: number | string}[]>('/bot/bookings-timeline');
-}
-
-
 export function updateBotBookingStatus(id: string, status: BotBooking['status']) {
   return botRequest(`/bookings/${id}`, {
     method: 'PATCH',
