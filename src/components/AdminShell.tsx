@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
@@ -20,6 +20,8 @@ import {
   MessageCircle,
   ChevronDown,
   ChevronRight,
+  Menu,
+  X,
 } from 'lucide-react';
 import {LogoutButton} from './LogoutButton';
 
@@ -69,6 +71,7 @@ export function AdminShell({
   const [isAuthenticated, setIsAuthenticated] = useState(cachedAuthStatus);
   const [isCheckingAuth, setIsCheckingAuth] = useState(!cachedAuthStatus);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -119,8 +122,13 @@ export function AdminShell({
 
   return (
     <main className="shell">
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div className="sidebarOverlay" onClick={() => setIsSidebarOpen(false)} />
+      )}
+
       <aside 
-        className="sidebar"
+        className={`sidebar ${isSidebarOpen ? 'open' : ''}`}
         onScroll={(e) => {
           sessionStorage.setItem('adminSidebarScroll', e.currentTarget.scrollTop.toString());
         }}
@@ -132,6 +140,9 @@ export function AdminShell({
           }
         }}
       >
+        <button className="sidebarCloseBtn" onClick={() => setIsSidebarOpen(false)}>
+          <X size={24} />
+        </button>
         <div className="brandMark">UP</div>
         <div>
           <h1>UstaadPro Admin</h1>
@@ -158,7 +169,12 @@ export function AdminShell({
                       {item.subItems.map(sub => {
                         const isSubActive = pathname === sub.href;
                         return (
-                          <Link href={sub.href} key={sub.href} className={isSubActive ? 'active' : ''}>
+                          <Link 
+                            href={sub.href} 
+                            key={sub.href} 
+                            className={isSubActive ? 'active' : ''}
+                            onClick={() => setIsSidebarOpen(false)}
+                          >
                             {sub.label}
                           </Link>
                         );
@@ -171,7 +187,12 @@ export function AdminShell({
 
             const isActive = pathname === item.href;
             return (
-              <Link href={item.href!} key={item.label} className={isActive ? 'active' : ''}>
+              <Link 
+                href={item.href!} 
+                key={item.label} 
+                className={isActive ? 'active' : ''}
+                onClick={() => setIsSidebarOpen(false)}
+              >
                 <item.Icon size={17} />
                 {item.label}
               </Link>
@@ -182,9 +203,14 @@ export function AdminShell({
 
       <section className="workspace">
         <header className="topbar">
-          <div>
-            <p className="eyebrow">{eyebrow}</p>
-            <h2>{title}</h2>
+          <div className="topbarTitleGroup">
+            <button className="mobileMenuBtn" onClick={() => setIsSidebarOpen(true)}>
+              <Menu size={24} />
+            </button>
+            <div>
+              <p className="eyebrow">{eyebrow}</p>
+              <h2>{title}</h2>
+            </div>
           </div>
           <div className="topbarActions">
             {action}
