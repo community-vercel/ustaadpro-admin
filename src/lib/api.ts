@@ -452,7 +452,7 @@ export interface BotSession {
 }
 
 export function getBotStats() {
-  return botRequest<BotStat>('/stats');
+  return botRequest<BotStat>('/bot/stats');
 }
 
 export function getBotServices() {

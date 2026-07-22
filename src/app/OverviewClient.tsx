@@ -21,9 +21,11 @@ import {
   AdminOrder,
   AdminShopOrder,
   AdminSummary,
+  BotStat,
   getOrders,
   getShopOrders,
   getSummary,
+  getBotStats,
 } from '@/lib/api';
 import {
   PieChart,
@@ -69,10 +71,38 @@ function statusLabel(status: string) {
   return status.replace(/_/g, ' ');
 }
 
+function getNiceMax(max: number) {
+  if (max <= 5) return 5;
+  if (max <= 10) return 10;
+  if (max <= 25) return 25;
+  if (max <= 50) return 50;
+  if (max <= 100) return 100;
+  
+  const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
+  const step = magnitude >= 100 ? magnitude / 2 : magnitude;
+  return Math.ceil(max / step) * step;
+}
+
+async function getBotBookingsTimelineLocal(): Promise<{date: string, count: number | string}[]> {
+  let base = 'http://localhost:5000';
+  if (typeof window !== 'undefined') {
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      base = 'https://api.ustaadpro.pk';
+    }
+  }
+  const response = await fetch(`${base}/api/bot/bookings-timeline`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+  return response.json();
+}
+
 export function OverviewClient() {
   const [summary, setSummary] = useState<AdminSummary | null>(null);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [shopOrders, setShopOrders] = useState<AdminShopOrder[]>([]);
+  const [botStats, setBotStats] = useState<BotStat | null>(null);
+  const [botBookingsTimeline, setBotBookingsTimeline] = useState<{date: string, count: number | string}[]>([]);
   const [message, setMessage] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -170,6 +200,30 @@ export function OverviewClient() {
     return last7Days;
   }, [orders, shopOrders]);
 
+  const botTimelineData = useMemo(() => {
+    const last7Days = Array.from({ length: 7 }).map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      const label = `${d.getMonth() + 1}/${d.getDate()}`;
+      return { date: label, count: 0 };
+    });
+
+    botBookingsTimeline.forEach(item => {
+      if (!item.date) return;
+      const d = new Date(item.date);
+      const label = `${d.getMonth() + 1}/${d.getDate()}`;
+      const day = last7Days.find(dItem => dItem.date === label);
+      if (day) day.count += Number(item.count || 0);
+    });
+
+    return last7Days;
+  }, [botBookingsTimeline]);
+
+  const botTimelineMax = useMemo(() => {
+    const max = Math.max(...botTimelineData.map(d => d.count), 0);
+    return getNiceMax(max);
+  }, [botTimelineData]);
+
   const latestActivity = useMemo<ActivityItem[]>(() => {
     const serviceItems: ActivityItem[] = orders.map(order => {
       const schedule = parseBookingSchedule(order.bookedFor);
@@ -203,14 +257,18 @@ export function OverviewClient() {
   const loadData = async () => {
     setIsRefreshing(true);
     try {
-      const [nextSummary, nextOrders, nextShopOrders] = await Promise.all([
+      const [nextSummary, nextOrders, nextShopOrders, nextBotStats, nextBotTimeline] = await Promise.all([
         getSummary(),
         getOrders(),
         getShopOrders(),
+        getBotStats().catch(() => null),
+        getBotBookingsTimelineLocal().catch(() => []),
       ]);
       setSummary(nextSummary);
       setOrders(nextOrders);
       setShopOrders(nextShopOrders);
+      setBotStats(nextBotStats);
+      setBotBookingsTimeline(nextBotTimeline);
       setMessage('');
     } finally {
       setIsRefreshing(false);
@@ -258,6 +316,11 @@ export function OverviewClient() {
         <StatCard icon={<Wrench />} label="Services" value={summary?.totalServices || 0} hint="Active catalog" />
         <StatCard icon={<Wallet />} label="Avg Order" value={money(metrics.averageOrderValue)} hint="Across all orders" />
         <StatCard icon={<XCircle />} label="Cancelled" value={metrics.cancelledOrders} hint="Service + shop" />
+        
+        <StatCard icon={<ClipboardList />} label="Bot Total Bookings" value={botStats?.totalBookings || 0} hint="From WhatsApp" />
+        <StatCard icon={<Activity color="#f59e0b" />} label="Bot Pending Bookings" value={botStats?.pendingBookings || 0} hint="Needs attention" />
+        <StatCard icon={<BadgeCheck color="#006c49" />} label="Bot Completed Bookings" value={botStats?.completedBookings || 0} hint="Finished via bot" />
+        <StatCard icon={<CalendarClock />} label="Bot Today Bookings" value={botStats?.todayBookings || 0} hint="Today from bot" />
       </section>
 
       <section className="operationsGrid">
@@ -353,6 +416,28 @@ export function OverviewClient() {
             </ResponsiveContainer>
           </div>
         </div>
+
+        <div className="panel chartPanel wideChart">
+          <div className="panelHead">
+            <div>
+              <p className="eyebrow">Last 7 Days</p>
+              <h3>Bot Bookings Timeline</h3>
+            </div>
+            <TrendingUp color="#0ea5e9" size={22} />
+          </div>
+          <div className="chartContainer">
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={botTimelineData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="date" tickLine={false} axisLine={false} />
+                <YAxis tickLine={false} axisLine={false} domain={[0, botTimelineMax]} allowDecimals={false} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="count" name="Bot Bookings" fill="#0ea5e9" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </section>
 
       <section className="panel">
@@ -409,7 +494,7 @@ function StatCard({
   );
 }
 
-function MiniMetric({label, value}: {label: string; value: string | number}) {
+function MiniMetric({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="miniMetric">
       <span>{label}</span>
@@ -418,7 +503,7 @@ function MiniMetric({label, value}: {label: string; value: string | number}) {
   );
 }
 
-function OpsRow({label, value, total}: {label: string; value: number; total: number}) {
+function OpsRow({ label, value, total }: { label: string; value: number; total: number }) {
   const percent = total > 0 ? Math.min(100, Math.round((value / total) * 100)) : 0;
   return (
     <div className="opsRow">
@@ -426,7 +511,7 @@ function OpsRow({label, value, total}: {label: string; value: number; total: num
         <span>{label}</span>
         <strong>{value}</strong>
       </div>
-      <div className="opsTrack"><span style={{width: `${percent}%`}} /></div>
+      <div className="opsTrack"><span style={{ width: `${percent}%` }} /></div>
     </div>
   );
 }
@@ -455,12 +540,12 @@ function RevenueSplitCard({
   );
 }
 
-function StatusLegend({data}: {data: Array<{name: string; value: number}>}) {
+function StatusLegend({ data }: { data: Array<{ name: string; value: number }> }) {
   return (
     <div className="statusLegendGrid">
       {data.map((item, index) => (
         <div className="statusLegendItem" key={item.name}>
-          <span style={{backgroundColor: COLORS[index % COLORS.length]}} />
+          <span style={{ backgroundColor: COLORS[index % COLORS.length] }} />
           <strong>{item.value}</strong>
           <small>{item.name}</small>
         </div>
