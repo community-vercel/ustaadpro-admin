@@ -23,6 +23,18 @@ export interface AdminSummary {
 }
 
 
+export interface AdminComplaint {
+  id: number;
+  name: string;
+  email: string | null;
+  phone: string;
+  service: string;
+  sub_service: string | null;
+  description: string | null;
+  images: string[] | null;
+  status: 'pending' | 'in-review' | 'resolved' | 'rejected';
+  created_at: string;
+}
 
 export interface AdminUser {
   id: number;
@@ -535,3 +547,20 @@ export function startBot() {
 export function stopBot() {
   return botRequest<{ success: boolean; message: string }>('/bot/stop', { method: 'POST' });
 }
+
+export async function getComplaints(status?: string, limit = 50, offset = 0) {
+  const url = new URL(`${API_BASE_URL}/complaints`);
+  if (status) url.searchParams.set('status', status);
+  url.searchParams.set('limit', String(limit));
+  url.searchParams.set('offset', String(offset));
+
+  return request<any>(url.toString().replace(API_BASE_URL, ''));
+}
+
+export async function updateComplaintStatus(id: number, status: string) {
+  return request<any>(`/complaints/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+

@@ -22,6 +22,7 @@ import {
   ChevronRight,
   Menu,
   X,
+  AlertCircle,
 } from 'lucide-react';
 import {LogoutButton} from './LogoutButton';
 
@@ -44,6 +45,7 @@ const navItems: NavItem[] = [
   {href: '/app-control', label: 'App Control', Icon: Sliders},
   {href: '/resources', label: 'Our Resources', Icon: UserCheck},
   {href: '/users', label: 'Users', Icon: Users},
+  {href: '/complaints', label: 'Complaints', Icon: AlertCircle},
   {
     label: 'Settings',
     Icon: Settings,
