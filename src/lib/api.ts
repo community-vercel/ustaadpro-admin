@@ -115,6 +115,7 @@ export interface AdminServiceWorkPrice {
 export interface AdminService {
   id: string;
   categoryId: string;
+  subcategoryId?: string | null;
   title: string;
   description: string;
   price: number;
@@ -169,6 +170,18 @@ export interface AdminCategory {
   subtitle: string;
   icon: string;
   tint: string;
+}
+
+export interface AdminSubcategory {
+  id: string;
+  categoryId: string;
+  title: string;
+  description?: string | null;
+}
+
+export interface AdminCatalogue {
+  categories: AdminCategory[];
+  subcategories: AdminSubcategory[];
 }
 
 export interface AdminSubscription {
@@ -291,6 +304,10 @@ export function getServices() {
 
 export function getCategories() {
   return request<AdminCategory[]>('/categories');
+}
+
+export function getAdminCatalogue() {
+  return request<AdminCatalogue>('/admin/catalogue');
 }
 
 export function getHomeSlides() {

@@ -6,7 +6,9 @@ import {AdminShell} from '@/components/AdminShell';
 import {Field, ImagePickerField} from '@/components/AdminFields';
 import {
   AdminCategory,
+  AdminSubcategory,
   AdminService,
+  getAdminCatalogue,
   getCategories,
   getServices,
   resolveAssetUrl,
@@ -42,17 +44,20 @@ export default function ServicesPage() {
   const [services, setServices] = useState<AdminService[]>([]);
   const [categories, setCategories] =
     useState<AdminCategory[]>(fallbackCategories);
+  const [subcategories, setSubcategories] = useState<AdminSubcategory[]>([]);
   const [serviceForm, setServiceForm] =
     useState<Partial<AdminService>>(emptyService);
   const [message, setMessage] = useState('');
 
   const loadData = async () => {
-    const [nextServices, nextCategories] = await Promise.all([
+    const [nextServices, catalogue] = await Promise.all([
       getServices(),
-      getCategories().catch(() => fallbackCategories),
+      getAdminCatalogue().catch(() => null),
     ]);
     setServices(nextServices);
+    const nextCategories = catalogue?.categories || await getCategories().catch(() => fallbackCategories);
     setCategories(nextCategories.length ? nextCategories : fallbackCategories);
+    setSubcategories(catalogue?.subcategories || []);
   };
 
   useEffect(() => {
@@ -265,6 +270,18 @@ export default function ServicesPage() {
                   </option>
                 ))}
               </select>
+            </label>
+            <label className="field">
+              <span>Sub-service</span>
+              <select
+                value={serviceForm.subcategoryId || ''}
+                onChange={event => setServiceForm({...serviceForm, subcategoryId: event.target.value || null})}>
+                <option value="">Direct service (no sub-service)</option>
+                {subcategories
+                  .filter(item => item.categoryId === serviceForm.categoryId)
+                  .map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
+              </select>
+              <small>Choose a sub-service, or leave direct for services shown immediately under the main service.</small>
             </label>
             <Field
               label="Service Type"
