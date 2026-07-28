@@ -1,7 +1,7 @@
-﻿'use client';
+'use client';
 
-import {useEffect, useState} from 'react';
-import {PackagePlus, Plus, RefreshCw, Trash2} from 'lucide-react';
+import {useEffect, useState, useCallback} from 'react';
+import {ChevronRight, Layers, PackagePlus, Plus, RefreshCw, Trash2} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
 import {Field, ImagePickerField} from '@/components/AdminFields';
 import {
@@ -20,6 +20,228 @@ import {
   fallbackCategories,
   money,
 } from '@/lib/adminUi';
+
+/* ─── Catalog browser types ─── */
+interface CatalogCategory extends AdminCategory {
+  subcategories: AdminSubcategory[];
+}
+
+/* ─── Catalog Browser Component ─── */
+function CatalogBrowser({onEdit}: {onEdit: (service: AdminService) => void}) {
+  const [catalog, setCatalog] = useState<CatalogCategory[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<CatalogCategory | null>(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<AdminSubcategory | null>(null);
+  const [browseServices, setBrowseServices] = useState<AdminService[]>([]);
+  const [loadingServices, setLoadingServices] = useState(false);
+  const [browserError, setBrowserError] = useState('');
+
+  useEffect(() => {
+    getAdminCatalogue()
+      .then(data => {
+        const byCategory = new Map<string, AdminSubcategory[]>();
+        for (const sub of data.subcategories) {
+          const list = byCategory.get(sub.categoryId) ?? [];
+          list.push(sub);
+          byCategory.set(sub.categoryId, list);
+        }
+        setCatalog(
+          data.categories.map(cat => ({
+            ...cat,
+            subcategories: byCategory.get(cat.id) ?? [],
+          })),
+        );
+      })
+      .catch(() => setBrowserError('Could not load catalog.'));
+  }, []);
+
+  const loadServices = useCallback(
+    async (categoryId: string, subcategoryId?: string) => {
+      setLoadingServices(true);
+      setBrowseServices([]);
+      setBrowserError('');
+      try {
+        const params = new URLSearchParams({categoryId});
+        if (subcategoryId) params.set('subcategoryId', subcategoryId);
+        const all = await getServices();
+        setBrowseServices(
+          all.filter(
+            s =>
+              s.categoryId === categoryId &&
+              (subcategoryId ? s.subcategoryId === subcategoryId : !s.subcategoryId),
+          ),
+        );
+      } catch {
+        setBrowserError('Could not load services for this selection.');
+      } finally {
+        setLoadingServices(false);
+      }
+    },
+    [],
+  );
+
+  const handleCategoryClick = (cat: CatalogCategory) => {
+    setSelectedCategory(cat);
+    setSelectedSubcategory(null);
+    if (cat.subcategories.length === 0) {
+      // No subcategories → show direct services
+      loadServices(cat.id);
+    } else {
+      setBrowseServices([]);
+    }
+  };
+
+  const handleSubcategoryClick = (sub: AdminSubcategory) => {
+    setSelectedSubcategory(sub);
+    if (selectedCategory) loadServices(selectedCategory.id, sub.id);
+  };
+
+  const handleBack = () => {
+    if (selectedSubcategory) {
+      setSelectedSubcategory(null);
+      setBrowseServices([]);
+    } else {
+      setSelectedCategory(null);
+      setBrowseServices([]);
+    }
+  };
+
+  /* ── render ── */
+  return (
+    <section className="panel catalogBrowser">
+      <div className="panelHead">
+        <div>
+          <p className="eyebrow">Browse deployed services</p>
+          <h3 style={{display: 'flex', alignItems: 'center', gap: 8}}>
+            <Layers size={18} />
+            Service Catalog
+          </h3>
+        </div>
+        {selectedCategory && (
+          <button className="ghostButton" onClick={handleBack}>
+            ← Back
+          </button>
+        )}
+      </div>
+
+      {/* Breadcrumb */}
+      {selectedCategory && (
+        <div className="catalogBreadcrumb">
+          <span
+            className="catalogCrumb"
+            style={{cursor: 'pointer', color: 'var(--green)'}}
+            onClick={() => { setSelectedCategory(null); setSelectedSubcategory(null); setBrowseServices([]); }}
+          >
+            All Services
+          </span>
+          <ChevronRight size={14} />
+          <span
+            className="catalogCrumb"
+            style={selectedSubcategory ? {cursor: 'pointer', color: 'var(--green)'} : {fontWeight: 700}}
+            onClick={selectedSubcategory ? () => { setSelectedSubcategory(null); setBrowseServices([]); if (selectedCategory.subcategories.length === 0) loadServices(selectedCategory.id); } : undefined}
+          >
+            {selectedCategory.title}
+          </span>
+          {selectedSubcategory && (
+            <>
+              <ChevronRight size={14} />
+              <span className="catalogCrumb" style={{fontWeight: 700}}>{selectedSubcategory.title}</span>
+            </>
+          )}
+        </div>
+      )}
+
+      {browserError && <div className="notice" style={{color: '#b91c1c', background: '#fff1f2', borderColor: '#fecaca'}}>{browserError}</div>}
+
+      {/* Level 1 — Main Categories */}
+      {!selectedCategory && (
+        <div className="catalogCategoryGrid">
+          {catalog.map(cat => (
+            <button
+              key={cat.id}
+              className="catalogCategoryCard"
+              style={{'--cat-tint': cat.tint} as React.CSSProperties}
+              onClick={() => handleCategoryClick(cat)}
+            >
+              <div className="catalogCategoryDot" style={{background: cat.tint}} />
+              <div className="catalogCategoryInfo">
+                <strong>{cat.title}</strong>
+                <small>
+                  {cat.subcategories.length > 0
+                    ? `${cat.subcategories.length} sub-services`
+                    : 'Direct services'}
+                </small>
+              </div>
+              <ChevronRight size={16} className="catalogChevron" />
+            </button>
+          ))}
+          {catalog.length === 0 && (
+            <p style={{color: 'var(--muted)', gridColumn: '1/-1'}}>Loading categories…</p>
+          )}
+        </div>
+      )}
+
+      {/* Level 2 — Subcategories */}
+      {selectedCategory && !selectedSubcategory && selectedCategory.subcategories.length > 0 && (
+        <div className="catalogCategoryGrid">
+          {selectedCategory.subcategories.map(sub => (
+            <button
+              key={sub.id}
+              className="catalogCategoryCard"
+              onClick={() => handleSubcategoryClick(sub)}
+            >
+              <div className="catalogCategoryDot" style={{background: selectedCategory.tint}} />
+              <div className="catalogCategoryInfo">
+                <strong>{sub.title}</strong>
+                <small>{sub.description || 'Sub-service'}</small>
+              </div>
+              <ChevronRight size={16} className="catalogChevron" />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Level 3 — Services */}
+      {(selectedSubcategory || (selectedCategory && selectedCategory.subcategories.length === 0)) && (
+        <div>
+          {loadingServices && <p style={{color: 'var(--muted)'}}>Loading services…</p>}
+          {!loadingServices && browseServices.length === 0 && !browserError && (
+            <p style={{color: 'var(--muted)'}}>No services found for this selection.</p>
+          )}
+          <div className="catalogServiceGrid">
+            {browseServices.map(service => (
+              <div key={service.id} className="catalogServiceCard">
+                {service.imageUrl && (
+                  <div
+                    className="catalogServiceImage"
+                    style={{backgroundImage: `url(${resolveAssetUrl(service.imageUrl)})`}}
+                  />
+                )}
+                <div className="catalogServiceBody">
+                  <strong>{service.title}</strong>
+                  <small>{service.serviceType || 'Standard Visit'}</small>
+                  <p className="catalogServiceDesc">{service.description}</p>
+                  <div className="catalogServiceFooter">
+                    <b>{money(service.price)}</b>
+                    <button
+                      className="ghostButton"
+                      style={{height: 32, fontSize: 13}}
+                      onClick={() => {
+                        onEdit(service);
+                        window.scrollTo({top: 0, behavior: 'smooth'});
+                      }}
+                    >
+                      Edit
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
 
 type ServiceListKey = 'includes' | 'details' | 'excludes';
 
@@ -472,6 +694,8 @@ export default function ServicesPage() {
           ))}
         </div>
       </section>
+
+      <CatalogBrowser onEdit={editService} />
     </AdminShell>
   );
 }
