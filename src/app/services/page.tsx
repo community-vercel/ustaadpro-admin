@@ -13,6 +13,8 @@ import {
   getServices,
   resolveAssetUrl,
   saveService,
+  saveAdminCategory,
+  saveAdminSubcategory,
 } from '@/lib/api';
 import {
   categoryHeroColor,
@@ -243,6 +245,67 @@ function CatalogBrowser({onEdit}: {onEdit: (service: AdminService) => void}) {
   );
 }
 
+function CatalogAssetsEditor({
+  categories,
+  subcategories,
+  onSaved,
+}: {
+  categories: AdminCategory[];
+  subcategories: AdminSubcategory[];
+  onSaved: () => Promise<void>;
+}) {
+  const [savingId, setSavingId] = useState('');
+
+  const saveCategoryAssets = async (category: AdminCategory) => {
+    setSavingId(`category-${category.id}`);
+    try {
+      await saveAdminCategory(category);
+      await onSaved();
+    } finally {
+      setSavingId('');
+    }
+  };
+
+  const saveSubcategoryAssets = async (subcategory: AdminSubcategory) => {
+    setSavingId(`subcategory-${subcategory.id}`);
+    try {
+      await saveAdminSubcategory(subcategory);
+      await onSaved();
+    } finally {
+      setSavingId('');
+    }
+  };
+
+  return (
+    <section className="panel">
+      <div className="panelHead">
+        <div>
+          <p className="eyebrow">Catalog appearance</p>
+          <h3>Desktop Images & Mobile Icons</h3>
+          <small>Desktop/web image is kept for web cards. Mobile icon is shown in the app; existing images/icons remain as the fallback.</small>
+        </div>
+      </div>
+      {categories.map(category => (
+        <div key={category.id} className="fieldWide" style={{borderTop: '1px solid var(--border)', paddingTop: 18, marginTop: 18}}>
+          <strong>{category.title}</strong>
+          <div className="formGrid" style={{marginTop: 12}}>
+            <ImagePickerField label="Desktop / Web Image" value={category.webImageUrl || ''} onChange={webImageUrl => saveAdminCategory({...category, webImageUrl}).then(onSaved)} />
+            <ImagePickerField label="Mobile Icon / App Image" value={category.mobileIconUrl || ''} onChange={mobileIconUrl => saveAdminCategory({...category, mobileIconUrl}).then(onSaved)} />
+          </div>
+          {subcategories.filter(subcategory => subcategory.categoryId === category.id).map(subcategory => (
+            <div key={subcategory.id} style={{marginTop: 14, paddingLeft: 16, borderLeft: `3px solid ${category.tint}`}}>
+              <strong>{subcategory.title}</strong>
+              <div className="formGrid" style={{marginTop: 10}}>
+                <ImagePickerField label="Desktop / Web Image" value={subcategory.webImageUrl || ''} onChange={webImageUrl => saveSubcategoryAssets({...subcategory, webImageUrl})} />
+                <ImagePickerField label="Mobile Icon / App Image" value={subcategory.mobileIconUrl || ''} onChange={mobileIconUrl => saveSubcategoryAssets({...subcategory, mobileIconUrl})} />
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </section>
+  );
+}
 type ServiceListKey = 'includes' | 'details' | 'excludes';
 
 const blankWorkPrice = {
@@ -695,6 +758,7 @@ export default function ServicesPage() {
         </div>
       </section>
 
+      <CatalogAssetsEditor categories={categories} subcategories={subcategories} onSaved={loadData} />
       <CatalogBrowser onEdit={editService} />
     </AdminShell>
   );

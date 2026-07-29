@@ -170,6 +170,8 @@ export interface AdminCategory {
   subtitle: string;
   icon: string;
   tint: string;
+  webImageUrl?: string;
+  mobileIconUrl?: string;
 }
 
 export interface AdminSubcategory {
@@ -177,6 +179,8 @@ export interface AdminSubcategory {
   categoryId: string;
   title: string;
   description?: string | null;
+  webImageUrl?: string;
+  mobileIconUrl?: string;
 }
 
 export interface AdminCatalogue {
@@ -308,6 +312,14 @@ export function getCategories() {
 
 export function getAdminCatalogue() {
   return request<AdminCatalogue>('/admin/catalogue');
+}
+
+export function saveAdminCategory(category: Partial<AdminCategory>) {
+  return request('/admin/categories', {method: 'POST', body: JSON.stringify(category)});
+}
+
+export function saveAdminSubcategory(subcategory: Partial<AdminSubcategory>) {
+  return request('/admin/subcategories', {method: 'POST', body: JSON.stringify(subcategory)});
 }
 
 export function getHomeSlides() {
