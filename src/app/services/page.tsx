@@ -15,6 +15,8 @@ import {
   saveService,
   saveAdminCategory,
   saveAdminSubcategory,
+  importServiceCatalog,
+  CatalogImportPreview,
 } from '@/lib/api';
 import {
   categoryHeroColor,
@@ -245,6 +247,84 @@ function CatalogBrowser({onEdit}: {onEdit: (service: AdminService) => void}) {
   );
 }
 
+function CatalogImportPanel({onImported}: {onImported: () => Promise<void>}) {
+  const [fileDataUrl, setFileDataUrl] = useState('');
+  const [fileName, setFileName] = useState('');
+  const [preview, setPreview] = useState<CatalogImportPreview | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const selectFile = (file?: File) => {
+    if (!file) return;
+    setError('');
+    setPreview(null);
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setFileDataUrl(reader.result);
+        setFileName(file.name);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const previewFile = async () => {
+    if (!fileDataUrl) return;
+    setBusy(true);
+    setError('');
+    try {
+      setPreview(await importServiceCatalog(fileDataUrl));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not validate spreadsheet.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const importFile = async () => {
+    if (!fileDataUrl || !preview) return;
+    setBusy(true);
+    setError('');
+    try {
+      await importServiceCatalog(fileDataUrl, true);
+      await onImported();
+      setFileDataUrl('');
+      setFileName('');
+      setPreview(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not import spreadsheet.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="panel">
+      <div className="panelHead">
+        <div>
+          <p className="eyebrow">Bulk catalog import</p>
+          <h3>Upload service spreadsheet</h3>
+          <small>Required columns: Main Category, Sub Category, Service, Price (PKR), Unit/Description, and Services Images. Asset columns are optional.</small>
+        </div>
+      </div>
+      <div className="formGrid">
+        <label className="field fieldWide">
+          <span>Excel file (.xlsx)</span>
+          <input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={event => selectFile(event.target.files?.[0])} />
+          {fileName && <small>Selected: {fileName}</small>}
+        </label>
+      </div>
+      {error && <div className="notice">{error}</div>}
+      <div style={{display: 'flex', gap: 10, marginTop: 14}}>
+        <button className="secondaryButton" disabled={!fileDataUrl || busy} onClick={previewFile}>Validate & Preview</button>
+        <button className="primaryButton" disabled={!preview || busy} onClick={importFile}>{busy ? 'Working…' : 'Import Catalog'}</button>
+      </div>
+      {preview && <div className="notice" style={{marginTop: 16}}>
+        Ready to import {preview.rows} services across {preview.categories.length} main categories and {preview.subcategories} subcategory/direct groups.
+      </div>}
+    </section>
+  );
+}
 function CatalogAssetsEditor({
   categories,
   subcategories,
@@ -254,55 +334,97 @@ function CatalogAssetsEditor({
   subcategories: AdminSubcategory[];
   onSaved: () => Promise<void>;
 }) {
-  const [savingId, setSavingId] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [saving, setSaving] = useState('');
+  const selectedCategory = categories.find(category => category.id === selectedCategoryId) || categories[0];
+  const selectedSubcategories = subcategories.filter(subcategory => subcategory.categoryId === selectedCategory?.id);
 
-  const saveCategoryAssets = async (category: AdminCategory) => {
-    setSavingId(`category-${category.id}`);
+  const saveCategory = async (patch: Partial<AdminCategory>) => {
+    if (!selectedCategory) return;
+    setSaving(`category-${selectedCategory.id}`);
     try {
-      await saveAdminCategory(category);
+      await saveAdminCategory({...selectedCategory, ...patch});
       await onSaved();
     } finally {
-      setSavingId('');
+      setSaving('');
     }
   };
 
-  const saveSubcategoryAssets = async (subcategory: AdminSubcategory) => {
-    setSavingId(`subcategory-${subcategory.id}`);
+  const saveSubcategory = async (subcategory: AdminSubcategory, patch: Partial<AdminSubcategory>) => {
+    setSaving(`subcategory-${subcategory.id}`);
     try {
-      await saveAdminSubcategory(subcategory);
+      await saveAdminSubcategory({...subcategory, ...patch});
       await onSaved();
     } finally {
-      setSavingId('');
+      setSaving('');
     }
   };
+
+  if (!selectedCategory) return null;
 
   return (
     <section className="panel">
       <div className="panelHead">
         <div>
           <p className="eyebrow">Catalog appearance</p>
-          <h3>Desktop Images & Mobile Icons</h3>
-          <small>Desktop/web image is kept for web cards. Mobile icon is shown in the app; existing images/icons remain as the fallback.</small>
+          <h3>Images & Mobile Icons</h3>
+          <small>Pick a main category, then manage only its visuals and sub-services. Changes save immediately.</small>
         </div>
       </div>
-      {categories.map(category => (
-        <div key={category.id} className="fieldWide" style={{borderTop: '1px solid var(--border)', paddingTop: 18, marginTop: 18}}>
-          <strong>{category.title}</strong>
-          <div className="formGrid" style={{marginTop: 12}}>
-            <ImagePickerField label="Desktop / Web Image" value={category.webImageUrl || ''} onChange={webImageUrl => saveAdminCategory({...category, webImageUrl}).then(onSaved)} />
-            <ImagePickerField label="Mobile Icon / App Image" value={category.mobileIconUrl || ''} onChange={mobileIconUrl => saveAdminCategory({...category, mobileIconUrl}).then(onSaved)} />
-          </div>
-          {subcategories.filter(subcategory => subcategory.categoryId === category.id).map(subcategory => (
-            <div key={subcategory.id} style={{marginTop: 14, paddingLeft: 16, borderLeft: `3px solid ${category.tint}`}}>
-              <strong>{subcategory.title}</strong>
-              <div className="formGrid" style={{marginTop: 10}}>
-                <ImagePickerField label="Desktop / Web Image" value={subcategory.webImageUrl || ''} onChange={webImageUrl => saveSubcategoryAssets({...subcategory, webImageUrl})} />
-                <ImagePickerField label="Mobile Icon / App Image" value={subcategory.mobileIconUrl || ''} onChange={mobileIconUrl => saveSubcategoryAssets({...subcategory, mobileIconUrl})} />
+
+      <div className="catalogCategoryGrid" style={{marginBottom: 22}}>
+        {categories.map(category => {
+          const active = category.id === selectedCategory.id;
+          return (
+            <button
+              key={category.id}
+              className="catalogCategoryCard"
+              style={{'--cat-tint': category.tint, outline: active ? `2px solid ${category.tint}` : undefined} as React.CSSProperties}
+              onClick={() => setSelectedCategoryId(category.id)}>
+              <div className="catalogCategoryDot" style={{background: category.tint}} />
+              <div className="catalogCategoryInfo">
+                <strong>{category.title}</strong>
+                <small>{subcategories.filter(item => item.categoryId === category.id).length} sub-services</small>
               </div>
-            </div>
-          ))}
+              {active && <span style={{color: category.tint, fontWeight: 800}}>Selected</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{background: '#f7fbf9', border: '1px solid #d8eee5', borderRadius: 16, padding: 18}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', marginBottom: 12}}>
+          <div>
+            <p className="eyebrow" style={{marginBottom: 4}}>Main category</p>
+            <h4 style={{margin: 0}}>{selectedCategory.title}</h4>
+          </div>
+          {saving === `category-${selectedCategory.id}` && <small>Saving…</small>}
         </div>
-      ))}
+        <div className="formGrid">
+          <ImagePickerField label="Mobile icon (home screen)" value={selectedCategory.mobileIconUrl || ''} onChange={mobileIconUrl => saveCategory({mobileIconUrl})} />
+          <ImagePickerField label="Desktop / web image" value={selectedCategory.webImageUrl || ''} onChange={webImageUrl => saveCategory({webImageUrl})} />
+        </div>
+      </div>
+
+      <div style={{marginTop: 24}}>
+        <p className="eyebrow">Step 2</p>
+        <h4 style={{margin: '4px 0 12px'}}>Sub-service images</h4>
+        {selectedSubcategories.length === 0 ? (
+          <div className="notice">This category has no sub-services. The mobile app opens its services directly.</div>
+        ) : selectedSubcategories.map(subcategory => (
+          <div key={subcategory.id} style={{display: 'grid', gridTemplateColumns: 'minmax(150px, 0.65fr) minmax(0, 1fr)', gap: 16, alignItems: 'center', padding: '16px 0', borderTop: '1px solid var(--border)'}}>
+            <div>
+              <strong>{subcategory.title}</strong>
+              <small style={{display: 'block', marginTop: 4, color: 'var(--muted)'}}>{subcategory.description || 'Sub-service'}</small>
+              {saving === `subcategory-${subcategory.id}` && <small>Saving…</small>}
+            </div>
+            <div className="formGrid">
+              <ImagePickerField label="Mobile image" value={subcategory.mobileIconUrl || ''} onChange={mobileIconUrl => saveSubcategory(subcategory, {mobileIconUrl})} />
+              <ImagePickerField label="Desktop / web image" value={subcategory.webImageUrl || ''} onChange={webImageUrl => saveSubcategory(subcategory, {webImageUrl})} />
+            </div>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
@@ -569,7 +691,7 @@ export default function ServicesPage() {
               <small>Choose a sub-service, or leave direct for services shown immediately under the main service.</small>
             </label>
             <Field
-              label="Service Type"
+              label="Unit / Description"
               value={serviceForm.serviceType || ''}
               onChange={serviceType =>
                 setServiceForm({...serviceForm, serviceType})
@@ -758,6 +880,7 @@ export default function ServicesPage() {
         </div>
       </section>
 
+      <CatalogImportPanel onImported={loadData} />
       <CatalogAssetsEditor categories={categories} subcategories={subcategories} onSaved={loadData} />
       <CatalogBrowser onEdit={editService} />
     </AdminShell>

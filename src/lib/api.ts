@@ -314,6 +314,20 @@ export function getAdminCatalogue() {
   return request<AdminCatalogue>('/admin/catalogue');
 }
 
+export interface CatalogImportPreview {
+  rows: number;
+  categories: string[];
+  subcategories: number;
+  preview: Array<{row: number; mainCategory: string; subcategory: string; title: string; price: number; unitDescription: string}>;
+  imported?: boolean;
+}
+
+export function importServiceCatalog(dataUrl: string, commit = false) {
+  return request<CatalogImportPreview>('/admin/catalogue/import', {
+    method: 'POST',
+    body: JSON.stringify({dataUrl, commit}),
+  });
+}
 export function saveAdminCategory(category: Partial<AdminCategory>) {
   return request('/admin/categories', {method: 'POST', body: JSON.stringify(category)});
 }
