@@ -163,7 +163,7 @@ function CatalogBrowser({onEdit}: {onEdit: (service: AdminService) => void}) {
             <button
               key={cat.id}
               className="catalogCategoryCard"
-              style={{'--cat-tint': cat.tint} as React.CSSProperties}
+              style={{borderColor: cat.tint}}
               onClick={() => handleCategoryClick(cat)}
             >
               <div className="catalogCategoryDot" style={{background: cat.tint}} />
@@ -379,7 +379,7 @@ function CatalogAssetsEditor({
             <button
               key={category.id}
               className="catalogCategoryCard"
-              style={{'--cat-tint': category.tint, outline: active ? `2px solid ${category.tint}` : undefined} as React.CSSProperties}
+              style={{borderColor: category.tint, outline: active ? `2px solid ${category.tint}` : undefined}}
               onClick={() => setSelectedCategoryId(category.id)}>
               <div className="catalogCategoryDot" style={{background: category.tint}} />
               <div className="catalogCategoryInfo">
@@ -447,6 +447,28 @@ function ensureEditableList(items?: string[]) {
   return compacted.length ? compacted : [''];
 }
 
+function GuidedCatalogBuilder({categories, subcategories, onSaved}: {categories: AdminCategory[]; subcategories: AdminSubcategory[]; onSaved: () => Promise<void>}) {
+  const [categoryId, setCategoryId] = useState('');
+  const [subcategoryId, setSubcategoryId] = useState('');
+  const [mainName, setMainName] = useState('');
+  const [subName, setSubName] = useState('');
+  const [serviceName, setServiceName] = useState('');
+  const [price, setPrice] = useState('');
+  const [busy, setBusy] = useState(false);
+  const category = categories.find(item => item.id === categoryId) || categories[0];
+  const subs = subcategories.filter(item => item.categoryId === category?.id);
+  const sub = subs.find(item => item.id === subcategoryId);
+  const run = async (work: () => Promise<unknown>) => {setBusy(true); try {await work(); await onSaved();} finally {setBusy(false);}};
+  return <section className="panel">
+    <div className="panelHead"><div><p className="eyebrow">Simple catalog builder</p><h3>Main Category → Subcategory → Service</h3><small>Create items in the same order customers see them. A service is direct when no subcategory is selected.</small></div><Layers size={22}/></div>
+    <div className="formGrid">
+      <div className="field fieldWide"><strong>1. Add main category</strong><div className="formGrid" style={{marginTop:10}}><Field label="Main category name" value={mainName} onChange={setMainName}/></div><button className="secondaryButton" disabled={busy||!mainName.trim()} onClick={()=>run(async()=>{await saveAdminCategory({title:mainName,subtitle:'Explore services',icon:'tool',tint:'#006C49'});setMainName('')})}>Add Main Category</button></div>
+      <div className="field fieldWide"><strong>2. Select main category</strong><div className="catalogCategoryGrid" style={{marginTop:10}}>{categories.map(item=><button key={item.id} className="catalogCategoryCard" style={{borderColor:item.tint,outline:category?.id===item.id?`2px solid ${item.tint}`:undefined}} onClick={()=>{setCategoryId(item.id);setSubcategoryId('')}}><div className="catalogCategoryDot" style={{background:item.tint}}/><div className="catalogCategoryInfo"><strong>{item.title}</strong><small>{subcategories.filter(s=>s.categoryId===item.id).length} subcategories</small></div></button>)}</div></div>
+      {category&&<div className="field fieldWide"><strong>3. Add or choose a subcategory under {category.title}</strong><small style={{display:'block',marginTop:4}}>Optional. Skip it for a direct service.</small><div className="formGrid" style={{marginTop:10}}><Field label="Subcategory name" value={subName} onChange={setSubName}/></div><button className="secondaryButton" disabled={busy||!subName.trim()} onClick={()=>run(async()=>{await saveAdminSubcategory({categoryId:category.id,title:subName,description:`${subName} services`});setSubName('')})}>Add Subcategory</button>{subs.length>0&&<div className="catalogCategoryGrid" style={{marginTop:12}}>{subs.map(item=><button key={item.id} className="catalogCategoryCard" style={{outline:sub?.id===item.id?`2px solid ${category.tint}`:undefined}} onClick={()=>setSubcategoryId(item.id)}><div className="catalogCategoryInfo"><strong>{item.title}</strong><small>{sub?.id===item.id?'Selected':'Select'}</small></div></button>)}</div>}</div>}
+      {category&&<div className="field fieldWide"><strong>4. Add service {sub?`to ${sub.title}`:`directly under ${category.title}`}</strong><div className="formGrid" style={{marginTop:10}}><Field label="Service name" value={serviceName} onChange={setServiceName}/><Field label="Price (PKR)" type="number" value={price} onChange={setPrice}/></div><button className="primaryButton" disabled={busy||!serviceName.trim()||!Number(price)} onClick={()=>run(async()=>{await saveService({categoryId:category.id,subcategoryId:sub?.id||null,title:serviceName,description:'Professional service',price:Number(price),originalPrice:Number(price),duration:'60 min',rating:0,reviews:0,includes:[],details:[],excludes:[]});setServiceName('');setPrice('')})}>{busy?'Saving…':'Add Service'}</button></div>}
+    </div>
+  </section>;
+}
 export default function ServicesPage() {
   const [services, setServices] = useState<AdminService[]>([]);
   const [categories, setCategories] =
@@ -643,6 +665,7 @@ export default function ServicesPage() {
       }
     >
       {message && <div className="notice">{message}</div>}
+      <GuidedCatalogBuilder categories={categories} subcategories={subcategories} onSaved={loadData} />
 
       <section className="panel">
         <div className="panelHead">

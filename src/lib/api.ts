@@ -336,6 +336,17 @@ export function saveAdminSubcategory(subcategory: Partial<AdminSubcategory>) {
   return request('/admin/subcategories', {method: 'POST', body: JSON.stringify(subcategory)});
 }
 
+export function deleteAdminCategory(id: string) {
+  return request(`/admin/categories/${id}`, {method: 'DELETE'});
+}
+
+export function deleteAdminSubcategory(id: string) {
+  return request(`/admin/subcategories/${id}`, {method: 'DELETE'});
+}
+
+export function deleteAdminService(id: string) {
+  return request(`/admin/services/${id}`, {method: 'DELETE'});
+}
 export function getHomeSlides() {
   return request<AdminHomeSlide[]>('/admin/home-slides');
 }
