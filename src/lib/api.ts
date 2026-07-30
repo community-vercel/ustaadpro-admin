@@ -91,6 +91,7 @@ export interface AdminPaymentReceipt {
   accountNumber: string;
   accountTitle: string;
   status: string;
+  paymentStage?: 'advance' | 'remaining' | 'full';
   createdAt: string;
   customerName: string;
   customerPhone: string;

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import {useEffect, useMemo, useState} from 'react';
 import Link from 'next/link';
@@ -118,7 +118,11 @@ export default function PaymentReceiptsPage() {
           <div className="empty">No receipts match your search.</div>
         ) : (
           <div className="ordersList">
-            {visibleReceipts.map(receipt => (
+            {visibleReceipts.map(receipt => {
+              const orderReceipts = receipts.filter(item => item.orderId === receipt.orderId);
+              const paid = orderReceipts.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+              const balance = Math.max(0, Number(receipt.orderTotal || 0) - paid);
+              return (
               <div className="orderCard" key={receipt.id}>
                 <div className="orderCardHead">
                   <div>
@@ -127,7 +131,7 @@ export default function PaymentReceiptsPage() {
                     <p>{receipt.customerPhone} • {receipt.customerEmail || 'No email'}</p>
                   </div>
                   <div className="receiptCardActions">
-                    <div className="statusTextCompleted">{receipt.status}</div>
+                    <div className="statusTextCompleted">{receipt.paymentStage} • Rs. {Number(receipt.amount).toLocaleString()}</div>
                     <Link className="ghostButton compactButton" href={`/payment-receipts/${receipt.id}`}>
                       View details
                     </Link>
@@ -137,9 +141,12 @@ export default function PaymentReceiptsPage() {
                 <div className="receiptSummaryLine">
                   <span>Service booked</span>
                   <strong>{getReceiptServices(receipt)}</strong>
+                  <span>Payment summary</span>
+                  <strong>Paid: Rs. {paid.toLocaleString()} • Remaining: Rs. {balance.toLocaleString()}</strong>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
