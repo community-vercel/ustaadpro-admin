@@ -318,34 +318,34 @@ export interface CatalogImportPreview {
   rows: number;
   categories: string[];
   subcategories: number;
-  preview: Array<{row: number; mainCategory: string; subcategory: string; title: string; price: number; unitDescription: string}>;
+  preview: Array<{ row: number; mainCategory: string; subcategory: string; title: string; price: number; unitDescription: string }>;
   imported?: boolean;
 }
 
 export function importServiceCatalog(dataUrl: string, commit = false) {
   return request<CatalogImportPreview>('/admin/catalogue/import', {
     method: 'POST',
-    body: JSON.stringify({dataUrl, commit}),
+    body: JSON.stringify({ dataUrl, commit }),
   });
 }
 export function saveAdminCategory(category: Partial<AdminCategory>) {
-  return request('/admin/categories', {method: 'POST', body: JSON.stringify(category)});
+  return request('/admin/categories', { method: 'POST', body: JSON.stringify(category) });
 }
 
 export function saveAdminSubcategory(subcategory: Partial<AdminSubcategory>) {
-  return request('/admin/subcategories', {method: 'POST', body: JSON.stringify(subcategory)});
+  return request('/admin/subcategories', { method: 'POST', body: JSON.stringify(subcategory) });
 }
 
 export function deleteAdminCategory(id: string) {
-  return request(`/admin/categories/${id}`, {method: 'DELETE'});
+  return request(`/admin/categories/${id}`, { method: 'DELETE' });
 }
 
 export function deleteAdminSubcategory(id: string) {
-  return request(`/admin/subcategories/${id}`, {method: 'DELETE'});
+  return request(`/admin/subcategories/${id}`, { method: 'DELETE' });
 }
 
 export function deleteAdminService(id: string) {
-  return request(`/admin/services/${id}`, {method: 'DELETE'});
+  return request(`/admin/services/${id}`, { method: 'DELETE' });
 }
 export function getHomeSlides() {
   return request<AdminHomeSlide[]>('/admin/home-slides');

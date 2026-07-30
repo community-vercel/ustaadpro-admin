@@ -1,9 +1,9 @@
 'use client';
 
-import {useEffect, useState, useCallback} from 'react';
-import {ChevronRight, Layers, PackagePlus, Plus, RefreshCw, Trash2} from 'lucide-react';
-import {AdminShell} from '@/components/AdminShell';
-import {Field, ImagePickerField} from '@/components/AdminFields';
+import { useEffect, useState, useCallback } from 'react';
+import { ChevronRight, Layers, PackagePlus, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { AdminShell } from '@/components/AdminShell';
+import { Field, ImagePickerField } from '@/components/AdminFields';
 import {
   AdminCategory,
   AdminSubcategory,
@@ -17,6 +17,7 @@ import {
   saveAdminSubcategory,
   importServiceCatalog,
   CatalogImportPreview,
+  deleteAdminService,
 } from '@/lib/api';
 import {
   categoryHeroColor,
@@ -31,7 +32,7 @@ interface CatalogCategory extends AdminCategory {
 }
 
 /* ─── Catalog Browser Component ─── */
-function CatalogBrowser({onEdit}: {onEdit: (service: AdminService) => void}) {
+function CatalogBrowser({ onEdit }: { onEdit: (service: AdminService) => void }) {
   const [catalog, setCatalog] = useState<CatalogCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<CatalogCategory | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<AdminSubcategory | null>(null);
@@ -64,7 +65,7 @@ function CatalogBrowser({onEdit}: {onEdit: (service: AdminService) => void}) {
       setBrowseServices([]);
       setBrowserError('');
       try {
-        const params = new URLSearchParams({categoryId});
+        const params = new URLSearchParams({ categoryId });
         if (subcategoryId) params.set('subcategoryId', subcategoryId);
         const all = await getServices();
         setBrowseServices(
@@ -115,7 +116,7 @@ function CatalogBrowser({onEdit}: {onEdit: (service: AdminService) => void}) {
       <div className="panelHead">
         <div>
           <p className="eyebrow">Browse deployed services</p>
-          <h3 style={{display: 'flex', alignItems: 'center', gap: 8}}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Layers size={18} />
             Service Catalog
           </h3>
@@ -132,7 +133,7 @@ function CatalogBrowser({onEdit}: {onEdit: (service: AdminService) => void}) {
         <div className="catalogBreadcrumb">
           <span
             className="catalogCrumb"
-            style={{cursor: 'pointer', color: 'var(--green)'}}
+            style={{ cursor: 'pointer', color: 'var(--green)' }}
             onClick={() => { setSelectedCategory(null); setSelectedSubcategory(null); setBrowseServices([]); }}
           >
             All Services
@@ -140,7 +141,7 @@ function CatalogBrowser({onEdit}: {onEdit: (service: AdminService) => void}) {
           <ChevronRight size={14} />
           <span
             className="catalogCrumb"
-            style={selectedSubcategory ? {cursor: 'pointer', color: 'var(--green)'} : {fontWeight: 700}}
+            style={selectedSubcategory ? { cursor: 'pointer', color: 'var(--green)' } : { fontWeight: 700 }}
             onClick={selectedSubcategory ? () => { setSelectedSubcategory(null); setBrowseServices([]); if (selectedCategory.subcategories.length === 0) loadServices(selectedCategory.id); } : undefined}
           >
             {selectedCategory.title}
@@ -148,13 +149,13 @@ function CatalogBrowser({onEdit}: {onEdit: (service: AdminService) => void}) {
           {selectedSubcategory && (
             <>
               <ChevronRight size={14} />
-              <span className="catalogCrumb" style={{fontWeight: 700}}>{selectedSubcategory.title}</span>
+              <span className="catalogCrumb" style={{ fontWeight: 700 }}>{selectedSubcategory.title}</span>
             </>
           )}
         </div>
       )}
 
-      {browserError && <div className="notice" style={{color: '#b91c1c', background: '#fff1f2', borderColor: '#fecaca'}}>{browserError}</div>}
+      {browserError && <div className="notice" style={{ color: '#b91c1c', background: '#fff1f2', borderColor: '#fecaca' }}>{browserError}</div>}
 
       {/* Level 1 — Main Categories */}
       {!selectedCategory && (
@@ -163,10 +164,10 @@ function CatalogBrowser({onEdit}: {onEdit: (service: AdminService) => void}) {
             <button
               key={cat.id}
               className="catalogCategoryCard"
-              style={{borderColor: cat.tint}}
+              style={{ borderColor: cat.tint }}
               onClick={() => handleCategoryClick(cat)}
             >
-              <div className="catalogCategoryDot" style={{background: cat.tint}} />
+              <div className="catalogCategoryDot" style={{ background: cat.tint }} />
               <div className="catalogCategoryInfo">
                 <strong>{cat.title}</strong>
                 <small>
@@ -179,7 +180,7 @@ function CatalogBrowser({onEdit}: {onEdit: (service: AdminService) => void}) {
             </button>
           ))}
           {catalog.length === 0 && (
-            <p style={{color: 'var(--muted)', gridColumn: '1/-1'}}>Loading categories…</p>
+            <p style={{ color: 'var(--muted)', gridColumn: '1/-1' }}>Loading categories…</p>
           )}
         </div>
       )}
@@ -193,7 +194,7 @@ function CatalogBrowser({onEdit}: {onEdit: (service: AdminService) => void}) {
               className="catalogCategoryCard"
               onClick={() => handleSubcategoryClick(sub)}
             >
-              <div className="catalogCategoryDot" style={{background: selectedCategory.tint}} />
+              <div className="catalogCategoryDot" style={{ background: selectedCategory.tint }} />
               <div className="catalogCategoryInfo">
                 <strong>{sub.title}</strong>
                 <small>{sub.description || 'Sub-service'}</small>
@@ -207,9 +208,9 @@ function CatalogBrowser({onEdit}: {onEdit: (service: AdminService) => void}) {
       {/* Level 3 — Services */}
       {(selectedSubcategory || (selectedCategory && selectedCategory.subcategories.length === 0)) && (
         <div>
-          {loadingServices && <p style={{color: 'var(--muted)'}}>Loading services…</p>}
+          {loadingServices && <p style={{ color: 'var(--muted)' }}>Loading services…</p>}
           {!loadingServices && browseServices.length === 0 && !browserError && (
-            <p style={{color: 'var(--muted)'}}>No services found for this selection.</p>
+            <p style={{ color: 'var(--muted)' }}>No services found for this selection.</p>
           )}
           <div className="catalogServiceGrid">
             {browseServices.map(service => (
@@ -217,7 +218,7 @@ function CatalogBrowser({onEdit}: {onEdit: (service: AdminService) => void}) {
                 {service.imageUrl && (
                   <div
                     className="catalogServiceImage"
-                    style={{backgroundImage: `url(${resolveAssetUrl(service.imageUrl)})`}}
+                    style={{ backgroundImage: `url(${resolveAssetUrl(service.imageUrl)})` }}
                   />
                 )}
                 <div className="catalogServiceBody">
@@ -228,10 +229,10 @@ function CatalogBrowser({onEdit}: {onEdit: (service: AdminService) => void}) {
                     <b>{money(service.price)}</b>
                     <button
                       className="ghostButton"
-                      style={{height: 32, fontSize: 13}}
+                      style={{ height: 32, fontSize: 13 }}
                       onClick={() => {
                         onEdit(service);
-                        window.scrollTo({top: 0, behavior: 'smooth'});
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
                     >
                       Edit
@@ -247,7 +248,7 @@ function CatalogBrowser({onEdit}: {onEdit: (service: AdminService) => void}) {
   );
 }
 
-function CatalogImportPanel({onImported}: {onImported: () => Promise<void>}) {
+function CatalogImportPanel({ onImported }: { onImported: () => Promise<void> }) {
   const [fileDataUrl, setFileDataUrl] = useState('');
   const [fileName, setFileName] = useState('');
   const [preview, setPreview] = useState<CatalogImportPreview | null>(null);
@@ -315,11 +316,11 @@ function CatalogImportPanel({onImported}: {onImported: () => Promise<void>}) {
         </label>
       </div>
       {error && <div className="notice">{error}</div>}
-      <div style={{display: 'flex', gap: 10, marginTop: 14}}>
+      <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
         <button className="secondaryButton" disabled={!fileDataUrl || busy} onClick={previewFile}>Validate & Preview</button>
         <button className="primaryButton" disabled={!preview || busy} onClick={importFile}>{busy ? 'Working…' : 'Import Catalog'}</button>
       </div>
-      {preview && <div className="notice" style={{marginTop: 16}}>
+      {preview && <div className="notice" style={{ marginTop: 16 }}>
         Ready to import {preview.rows} services across {preview.categories.length} main categories and {preview.subcategories} subcategory/direct groups.
       </div>}
     </section>
@@ -343,7 +344,7 @@ function CatalogAssetsEditor({
     if (!selectedCategory) return;
     setSaving(`category-${selectedCategory.id}`);
     try {
-      await saveAdminCategory({...selectedCategory, ...patch});
+      await saveAdminCategory({ ...selectedCategory, ...patch });
       await onSaved();
     } finally {
       setSaving('');
@@ -353,7 +354,7 @@ function CatalogAssetsEditor({
   const saveSubcategory = async (subcategory: AdminSubcategory, patch: Partial<AdminSubcategory>) => {
     setSaving(`subcategory-${subcategory.id}`);
     try {
-      await saveAdminSubcategory({...subcategory, ...patch});
+      await saveAdminSubcategory({ ...subcategory, ...patch });
       await onSaved();
     } finally {
       setSaving('');
@@ -372,55 +373,55 @@ function CatalogAssetsEditor({
         </div>
       </div>
 
-      <div className="catalogCategoryGrid" style={{marginBottom: 22}}>
+      <div className="catalogCategoryGrid" style={{ marginBottom: 22 }}>
         {categories.map(category => {
           const active = category.id === selectedCategory.id;
           return (
             <button
               key={category.id}
               className="catalogCategoryCard"
-              style={{borderColor: category.tint, outline: active ? `2px solid ${category.tint}` : undefined}}
+              style={{ borderColor: category.tint, outline: active ? `2px solid ${category.tint}` : undefined }}
               onClick={() => setSelectedCategoryId(category.id)}>
-              <div className="catalogCategoryDot" style={{background: category.tint}} />
+              <div className="catalogCategoryDot" style={{ background: category.tint }} />
               <div className="catalogCategoryInfo">
                 <strong>{category.title}</strong>
                 <small>{subcategories.filter(item => item.categoryId === category.id).length} sub-services</small>
               </div>
-              {active && <span style={{color: category.tint, fontWeight: 800}}>Selected</span>}
+              {active && <span style={{ color: category.tint, fontWeight: 800 }}>Selected</span>}
             </button>
           );
         })}
       </div>
 
-      <div style={{background: '#f7fbf9', border: '1px solid #d8eee5', borderRadius: 16, padding: 18}}>
-        <div style={{display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', marginBottom: 12}}>
+      <div style={{ background: '#f7fbf9', border: '1px solid #d8eee5', borderRadius: 16, padding: 18 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', marginBottom: 12 }}>
           <div>
-            <p className="eyebrow" style={{marginBottom: 4}}>Main category</p>
-            <h4 style={{margin: 0}}>{selectedCategory.title}</h4>
+            <p className="eyebrow" style={{ marginBottom: 4 }}>Main category</p>
+            <h4 style={{ margin: 0 }}>{selectedCategory.title}</h4>
           </div>
           {saving === `category-${selectedCategory.id}` && <small>Saving…</small>}
         </div>
         <div className="formGrid">
-          <ImagePickerField label="Mobile icon (home screen)" value={selectedCategory.mobileIconUrl || ''} onChange={mobileIconUrl => saveCategory({mobileIconUrl})} />
-          <ImagePickerField label="Desktop / web image" value={selectedCategory.webImageUrl || ''} onChange={webImageUrl => saveCategory({webImageUrl})} />
+          <ImagePickerField label="Mobile icon (home screen)" value={selectedCategory.mobileIconUrl || ''} onChange={mobileIconUrl => saveCategory({ mobileIconUrl })} />
+          <ImagePickerField label="Desktop / web image" value={selectedCategory.webImageUrl || ''} onChange={webImageUrl => saveCategory({ webImageUrl })} />
         </div>
       </div>
 
-      <div style={{marginTop: 24}}>
+      <div style={{ marginTop: 24 }}>
         <p className="eyebrow">Step 2</p>
-        <h4 style={{margin: '4px 0 12px'}}>Sub-service images</h4>
+        <h4 style={{ margin: '4px 0 12px' }}>Sub-service images</h4>
         {selectedSubcategories.length === 0 ? (
           <div className="notice">This category has no sub-services. The mobile app opens its services directly.</div>
         ) : selectedSubcategories.map(subcategory => (
-          <div key={subcategory.id} style={{display: 'grid', gridTemplateColumns: 'minmax(150px, 0.65fr) minmax(0, 1fr)', gap: 16, alignItems: 'center', padding: '16px 0', borderTop: '1px solid var(--border)'}}>
+          <div key={subcategory.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(150px, 0.65fr) minmax(0, 1fr)', gap: 16, alignItems: 'center', padding: '16px 0', borderTop: '1px solid var(--border)' }}>
             <div>
               <strong>{subcategory.title}</strong>
-              <small style={{display: 'block', marginTop: 4, color: 'var(--muted)'}}>{subcategory.description || 'Sub-service'}</small>
+              <small style={{ display: 'block', marginTop: 4, color: 'var(--muted)' }}>{subcategory.description || 'Sub-service'}</small>
               {saving === `subcategory-${subcategory.id}` && <small>Saving…</small>}
             </div>
             <div className="formGrid">
-              <ImagePickerField label="Mobile image" value={subcategory.mobileIconUrl || ''} onChange={mobileIconUrl => saveSubcategory(subcategory, {mobileIconUrl})} />
-              <ImagePickerField label="Desktop / web image" value={subcategory.webImageUrl || ''} onChange={webImageUrl => saveSubcategory(subcategory, {webImageUrl})} />
+              <ImagePickerField label="Mobile image" value={subcategory.mobileIconUrl || ''} onChange={mobileIconUrl => saveSubcategory(subcategory, { mobileIconUrl })} />
+              <ImagePickerField label="Desktop / web image" value={subcategory.webImageUrl || ''} onChange={webImageUrl => saveSubcategory(subcategory, { webImageUrl })} />
             </div>
           </div>
         ))}
@@ -447,7 +448,7 @@ function ensureEditableList(items?: string[]) {
   return compacted.length ? compacted : [''];
 }
 
-function GuidedCatalogBuilder({categories, subcategories, onSaved}: {categories: AdminCategory[]; subcategories: AdminSubcategory[]; onSaved: () => Promise<void>}) {
+function GuidedCatalogBuilder({ categories, subcategories, onSaved }: { categories: AdminCategory[]; subcategories: AdminSubcategory[]; onSaved: () => Promise<void> }) {
   const [categoryId, setCategoryId] = useState('');
   const [subcategoryId, setSubcategoryId] = useState('');
   const [mainName, setMainName] = useState('');
@@ -458,14 +459,14 @@ function GuidedCatalogBuilder({categories, subcategories, onSaved}: {categories:
   const category = categories.find(item => item.id === categoryId) || categories[0];
   const subs = subcategories.filter(item => item.categoryId === category?.id);
   const sub = subs.find(item => item.id === subcategoryId);
-  const run = async (work: () => Promise<unknown>) => {setBusy(true); try {await work(); await onSaved();} finally {setBusy(false);}};
+  const run = async (work: () => Promise<unknown>) => { setBusy(true); try { await work(); await onSaved(); } finally { setBusy(false); } };
   return <section className="panel">
-    <div className="panelHead"><div><p className="eyebrow">Simple catalog builder</p><h3>Main Category → Subcategory → Service</h3><small>Create items in the same order customers see them. A service is direct when no subcategory is selected.</small></div><Layers size={22}/></div>
+    <div className="panelHead"><div><p className="eyebrow">Simple catalog builder</p><h3>Main Category → Subcategory → Service</h3><small>Create items in the same order customers see them. A service is direct when no subcategory is selected.</small></div><Layers size={22} /></div>
     <div className="formGrid">
-      <div className="field fieldWide"><strong>1. Add main category</strong><div className="formGrid" style={{marginTop:10}}><Field label="Main category name" value={mainName} onChange={setMainName}/></div><button className="secondaryButton" disabled={busy||!mainName.trim()} onClick={()=>run(async()=>{await saveAdminCategory({title:mainName,subtitle:'Explore services',icon:'tool',tint:'#006C49'});setMainName('')})}>Add Main Category</button></div>
-      <div className="field fieldWide"><strong>2. Select main category</strong><div className="catalogCategoryGrid" style={{marginTop:10}}>{categories.map(item=><button key={item.id} className="catalogCategoryCard" style={{borderColor:item.tint,outline:category?.id===item.id?`2px solid ${item.tint}`:undefined}} onClick={()=>{setCategoryId(item.id);setSubcategoryId('')}}><div className="catalogCategoryDot" style={{background:item.tint}}/><div className="catalogCategoryInfo"><strong>{item.title}</strong><small>{subcategories.filter(s=>s.categoryId===item.id).length} subcategories</small></div></button>)}</div></div>
-      {category&&<div className="field fieldWide"><strong>3. Add or choose a subcategory under {category.title}</strong><small style={{display:'block',marginTop:4}}>Optional. Skip it for a direct service.</small><div className="formGrid" style={{marginTop:10}}><Field label="Subcategory name" value={subName} onChange={setSubName}/></div><button className="secondaryButton" disabled={busy||!subName.trim()} onClick={()=>run(async()=>{await saveAdminSubcategory({categoryId:category.id,title:subName,description:`${subName} services`});setSubName('')})}>Add Subcategory</button>{subs.length>0&&<div className="catalogCategoryGrid" style={{marginTop:12}}>{subs.map(item=><button key={item.id} className="catalogCategoryCard" style={{outline:sub?.id===item.id?`2px solid ${category.tint}`:undefined}} onClick={()=>setSubcategoryId(item.id)}><div className="catalogCategoryInfo"><strong>{item.title}</strong><small>{sub?.id===item.id?'Selected':'Select'}</small></div></button>)}</div>}</div>}
-      {category&&<div className="field fieldWide"><strong>4. Add service {sub?`to ${sub.title}`:`directly under ${category.title}`}</strong><div className="formGrid" style={{marginTop:10}}><Field label="Service name" value={serviceName} onChange={setServiceName}/><Field label="Price (PKR)" type="number" value={price} onChange={setPrice}/></div><button className="primaryButton" disabled={busy||!serviceName.trim()||!Number(price)} onClick={()=>run(async()=>{await saveService({categoryId:category.id,subcategoryId:sub?.id||null,title:serviceName,description:'Professional service',price:Number(price),originalPrice:Number(price),duration:'60 min',rating:0,reviews:0,includes:[],details:[],excludes:[]});setServiceName('');setPrice('')})}>{busy?'Saving…':'Add Service'}</button></div>}
+      <div className="field fieldWide"><strong>1. Add main category</strong><div className="formGrid" style={{ marginTop: 10 }}><Field label="Main category name" value={mainName} onChange={setMainName} /></div><button className="secondaryButton" disabled={busy || !mainName.trim()} onClick={() => run(async () => { await saveAdminCategory({ title: mainName, subtitle: 'Explore services', icon: 'tool', tint: '#006C49' }); setMainName('') })}>Add Main Category</button></div>
+      <div className="field fieldWide"><strong>2. Select main category</strong><div className="catalogCategoryGrid" style={{ marginTop: 10 }}>{categories.map(item => <button key={item.id} className="catalogCategoryCard" style={{ borderColor: item.tint, outline: category?.id === item.id ? `2px solid ${item.tint}` : undefined }} onClick={() => { setCategoryId(item.id); setSubcategoryId('') }}><div className="catalogCategoryDot" style={{ background: item.tint }} /><div className="catalogCategoryInfo"><strong>{item.title}</strong><small>{subcategories.filter(s => s.categoryId === item.id).length} subcategories</small></div></button>)}</div></div>
+      {category && <div className="field fieldWide"><strong>3. Add or choose a subcategory under {category.title}</strong><small style={{ display: 'block', marginTop: 4 }}>Optional. Skip it for a direct service.</small><div className="formGrid" style={{ marginTop: 10 }}><Field label="Subcategory name" value={subName} onChange={setSubName} /></div><button className="secondaryButton" disabled={busy || !subName.trim()} onClick={() => run(async () => { await saveAdminSubcategory({ categoryId: category.id, title: subName, description: `${subName} services` }); setSubName('') })}>Add Subcategory</button>{subs.length > 0 && <div className="catalogCategoryGrid" style={{ marginTop: 12 }}>{subs.map(item => <button key={item.id} className="catalogCategoryCard" style={{ outline: sub?.id === item.id ? `2px solid ${category.tint}` : undefined }} onClick={() => setSubcategoryId(item.id)}><div className="catalogCategoryInfo"><strong>{item.title}</strong><small>{sub?.id === item.id ? 'Selected' : 'Select'}</small></div></button>)}</div>}</div>}
+      {category && <div className="field fieldWide"><strong>4. Add service {sub ? `to ${sub.title}` : `directly under ${category.title}`}</strong><div className="formGrid" style={{ marginTop: 10 }}><Field label="Service name" value={serviceName} onChange={setServiceName} /><Field label="Price (PKR)" type="number" value={price} onChange={setPrice} /></div><button className="primaryButton" disabled={busy || !serviceName.trim() || !Number(price)} onClick={() => run(async () => { await saveService({ categoryId: category.id, subcategoryId: sub?.id || null, title: serviceName, description: 'Professional service', price: Number(price), originalPrice: Number(price), duration: '60 min', rating: 0, reviews: 0, includes: [], details: [], excludes: [] }); setServiceName(''); setPrice('') })}>{busy ? 'Saving…' : 'Add Service'}</button></div>}
     </div>
   </section>;
 }
@@ -477,6 +478,8 @@ export default function ServicesPage() {
   const [serviceForm, setServiceForm] =
     useState<Partial<AdminService>>(emptyService);
   const [message, setMessage] = useState('');
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [builderOpen, setBuilderOpen] = useState(false);
 
   const loadData = async () => {
     const [nextServices, catalogue] = await Promise.all([
@@ -519,8 +522,8 @@ export default function ServicesPage() {
       const nextWorkPrices = [
         ...(current.workPrices?.length ? current.workPrices : [blankWorkPrice]),
       ];
-      nextWorkPrices[index] = {...nextWorkPrices[index], ...patch};
-      return {...current, workPrices: nextWorkPrices};
+      nextWorkPrices[index] = { ...nextWorkPrices[index], ...patch };
+      return { ...current, workPrices: nextWorkPrices };
     });
   };
 
@@ -529,7 +532,7 @@ export default function ServicesPage() {
       ...current,
       workPrices: [
         ...(current.workPrices || []),
-        {...blankWorkPrice, sortOrder: current.workPrices?.length || 0},
+        { ...blankWorkPrice, sortOrder: current.workPrices?.length || 0 },
       ],
     }));
   };
@@ -551,7 +554,7 @@ export default function ServicesPage() {
     setServiceForm(current => {
       const nextItems = ensureEditableList(current[key]);
       nextItems[index] = value;
-      return {...current, [key]: nextItems};
+      return { ...current, [key]: nextItems };
     });
   };
 
@@ -567,7 +570,7 @@ export default function ServicesPage() {
       const nextItems = ensureEditableList(current[key]).filter(
         (_, itemIndex) => itemIndex !== index,
       );
-      return {...current, [key]: nextItems.length ? nextItems : ['']};
+      return { ...current, [key]: nextItems.length ? nextItems : [''] };
     });
   };
 
@@ -591,7 +594,22 @@ export default function ServicesPage() {
     }
   };
 
+  const handleDeleteService = async () => {
+    if (!serviceForm.id) return;
+    const title = serviceForm.title || 'this service';
+    if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) return;
+    try {
+      await deleteAdminService(serviceForm.id);
+      setServiceForm(emptyService);
+      await loadData();
+      setMessage('Service deleted. The mobile catalogue has been updated.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not delete this service. Booked services cannot be deleted.');
+    }
+  };
+
   const editService = (service: AdminService) => {
+    setEditorOpen(true);
     setServiceForm({
       ...service,
       includes: ensureEditableList(service.includes),
@@ -600,16 +618,16 @@ export default function ServicesPage() {
       workPrices: service.workPrices?.length
         ? service.workPrices
         : [
-            {
-              title: service.title,
-              description: service.serviceType || '',
-              price: service.price,
-              imageUrl: '',
-              sortOrder: 0,
-            },
-          ],
+          {
+            title: service.title,
+            description: service.serviceType || '',
+            price: service.price,
+            imageUrl: '',
+            sortOrder: 0,
+          },
+        ],
     });
-    window.scrollTo({top: 0, behavior: 'smooth'});
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const renderListEditor = (
@@ -658,254 +676,254 @@ export default function ServicesPage() {
       eyebrow="Dynamic app catalog"
       title="Services"
       action={
-        <button className="ghostButton" onClick={() => loadData()}>
-          <RefreshCw size={17} />
-          Refresh
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="primaryButton" onClick={() => { setServiceForm(emptyService); setEditorOpen(true); setBuilderOpen(false); window.scrollTo({top: 0, behavior: 'smooth'}); }}>
+            <Plus size={17} />
+            Add Service
+          </button>
+          <button className="ghostButton" onClick={() => { setBuilderOpen(current => !current); setEditorOpen(false); }}>
+            <Layers size={17} />
+            Manage Catalog
+          </button>
+          <button className="ghostButton" onClick={() => loadData()}>
+            <RefreshCw size={17} />
+            Refresh
+          </button>
+        </div>
       }
     >
       {message && <div className="notice">{message}</div>}
-      <GuidedCatalogBuilder categories={categories} subcategories={subcategories} onSaved={loadData} />
+      <CatalogBrowser onEdit={editService} />
 
-      <section className="panel">
-        <div className="panelHead">
-          <div>
-            <p className="eyebrow">Mobile service catalog</p>
-            <h3>{serviceForm.id ? 'Edit Service' : 'Add Service'}</h3>
+      {builderOpen && <GuidedCatalogBuilder categories={categories} subcategories={subcategories} onSaved={loadData} />}
+
+      {editorOpen && <section className="panel">
+          <div className="panelHead">
+            <div>
+              <p className="eyebrow">Mobile service catalog</p>
+              <h3>{serviceForm.id ? 'Edit Service' : 'Add Service'}</h3>
+            </div>
+            <PackagePlus size={22} />
           </div>
-          <PackagePlus size={22} />
-        </div>
 
-        <div className="serviceEditor">
-          <div className="formGrid">
-            <Field
-              label="Title"
-              value={serviceForm.title || ''}
-              onChange={title => setServiceForm({...serviceForm, title})}
-            />
-            <label className="field">
-              <span>Category used inside app</span>
-              <select
-                value={serviceForm.categoryId || 'home'}
-                onChange={event =>
+          <div className="serviceEditor">
+            <div className="formGrid">
+              <Field
+                label="Title"
+                value={serviceForm.title || ''}
+                onChange={title => setServiceForm({ ...serviceForm, title })}
+              />
+              <label className="field">
+                <span>Category used inside app</span>
+                <select
+                  value={serviceForm.categoryId || 'home'}
+                  onChange={event =>
+                    setServiceForm({
+                      ...serviceForm,
+                      categoryId: event.target.value,
+                    })
+                  }
+                >
+                  {categories.map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Sub-service</span>
+                <select
+                  value={serviceForm.subcategoryId || ''}
+                  onChange={event => setServiceForm({ ...serviceForm, subcategoryId: event.target.value || null })}>
+                  <option value="">Direct service (no sub-service)</option>
+                  {subcategories
+                    .filter(item => item.categoryId === serviceForm.categoryId)
+                    .map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
+                </select>
+                <small>Choose a sub-service, or leave direct for services shown immediately under the main service.</small>
+              </label>
+              <Field
+                label="Unit / Description"
+                value={serviceForm.serviceType || ''}
+                onChange={serviceType =>
+                  setServiceForm({ ...serviceForm, serviceType })
+                }
+              />
+              <ImagePickerField
+                label="Upload Service Image"
+                value={serviceForm.imageUrl}
+                onChange={imageUrl => setServiceForm({ ...serviceForm, imageUrl })}
+              />
+              <Field
+                label="Minimum Price (PKR)"
+                type="number"
+                value={String(minimumWorkPrice || serviceForm.price || '')}
+                onChange={price =>
+                  setServiceForm({ ...serviceForm, price: Number(price) })
+                }
+              />
+              <Field
+                label="Original Price (PKR)"
+                type="number"
+                value={String(serviceForm.originalPrice || '')}
+                onChange={originalPrice =>
                   setServiceForm({
                     ...serviceForm,
-                    categoryId: event.target.value,
+                    originalPrice: Number(originalPrice),
                   })
                 }
-              >
-                {categories.map(category => (
-                  <option key={category.id} value={category.id}>
-                    {category.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Sub-service</span>
-              <select
-                value={serviceForm.subcategoryId || ''}
-                onChange={event => setServiceForm({...serviceForm, subcategoryId: event.target.value || null})}>
-                <option value="">Direct service (no sub-service)</option>
-                {subcategories
-                  .filter(item => item.categoryId === serviceForm.categoryId)
-                  .map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
-              </select>
-              <small>Choose a sub-service, or leave direct for services shown immediately under the main service.</small>
-            </label>
-            <Field
-              label="Unit / Description"
-              value={serviceForm.serviceType || ''}
-              onChange={serviceType =>
-                setServiceForm({...serviceForm, serviceType})
-              }
-            />
-            <ImagePickerField
-              label="Upload Service Image"
-              value={serviceForm.imageUrl}
-              onChange={imageUrl => setServiceForm({...serviceForm, imageUrl})}
-            />
-            <Field
-              label="Minimum Price (PKR)"
-              type="number"
-              value={String(minimumWorkPrice || serviceForm.price || '')}
-              onChange={price =>
-                setServiceForm({...serviceForm, price: Number(price)})
-              }
-            />
-            <Field
-              label="Original Price (PKR)"
-              type="number"
-              value={String(serviceForm.originalPrice || '')}
-              onChange={originalPrice =>
-                setServiceForm({
-                  ...serviceForm,
-                  originalPrice: Number(originalPrice),
-                })
-              }
-            />
-            <div className="field fieldWide workPriceEditor">
-              <div className="workPriceHeader">
-                <span>Specific Work / Dynamic Prices</span>
-                <button type="button" className="ghostButton" onClick={addWorkPrice}>
-                  <Plus size={15} />
-                  Add Work
-                </button>
-              </div>
-              {workPrices.map((work, index) => (
-                <div className="workPriceRow" key={index}>
-                  <ImagePickerField
-                    label="Work Image"
-                    value={work.imageUrl}
-                    onChange={imageUrl => updateWorkPrice(index, {imageUrl})}
-                  />
-                  <input
-                    value={work.title || ''}
-                    onChange={event =>
-                      updateWorkPrice(index, {title: event.target.value})
-                    }
-                    placeholder="Work name, e.g. Breaker replacement"
-                  />
-                  <input
-                    value={work.description || ''}
-                    onChange={event =>
-                      updateWorkPrice(index, {description: event.target.value})
-                    }
-                    placeholder="Short note shown in app"
-                  />
-                  <input
-                    type="number"
-                    value={String(work.price || '')}
-                    onChange={event =>
-                      updateWorkPrice(index, {price: Number(event.target.value)})
-                    }
-                    placeholder="Price"
-                  />
-                  <button
-                    type="button"
-                    className="secondaryButton"
-                    onClick={() => removeWorkPrice(index)}
-                    disabled={workPrices.length <= 1}
-                  >
-                    <Trash2 size={15} />
+              />
+              <div className="field fieldWide workPriceEditor">
+                <div className="workPriceHeader">
+                  <span>Specific Work / Dynamic Prices</span>
+                  <button type="button" className="ghostButton" onClick={addWorkPrice}>
+                    <Plus size={15} />
+                    Add Work
                   </button>
                 </div>
-              ))}
-              <small>Our Services shows the minimum price: {money(minimumWorkPrice)}</small>
-            </div>
-            <Field
-              label="Duration"
-              value={serviceForm.duration || ''}
-              onChange={duration => setServiceForm({...serviceForm, duration})}
-            />
-            <Field
-              label="Badge"
-              value={serviceForm.badge || ''}
-              onChange={badge => setServiceForm({...serviceForm, badge})}
-            />
-            <label className="field fieldWide">
-              <span>Description</span>
-              <textarea
-                value={serviceForm.description || ''}
-                onChange={event =>
-                  setServiceForm({
-                    ...serviceForm,
-                    description: event.target.value,
-                  })
-                }
-              />
-            </label>
-            <label className="field fieldWide">
-              <span>Service Details Description</span>
-              <textarea
-                value={serviceForm.detailDescription || ''}
-                onChange={event =>
-                  setServiceForm({
-                    ...serviceForm,
-                    detailDescription: event.target.value,
-                  })
-                }
-              />
-            </label>
-            {renderListEditor(
-              'includes',
-              'Specific Work / Includes',
-              'e.g. Breaker inspection',
-            )}
-            {renderListEditor(
-              'details',
-              'Service Detail Checkmarks',
-              'e.g. Faulty breaker point inspected',
-            )}
-            {renderListEditor(
-              'excludes',
-              'Excludes',
-              'e.g. Breaker/MCB cost',
-            )}
-          </div>
-
-          <div className="mobilePreview">
-            <p className="eyebrow">App preview</p>
-            <div className="appServiceCard">
-              <div
-                className="appServiceHero"
-                style={{
-                  backgroundColor: categoryHeroColor(serviceForm.categoryId),
-                  backgroundImage: serviceForm.imageUrl
-                    ? `url(${resolveAssetUrl(serviceForm.imageUrl)})`
-                    : undefined,
-                }}
-              >
-                <span>{serviceForm.title || 'Service Title'}</span>
+                {workPrices.map((work, index) => (
+                  <div className="workPriceRow" key={index}>
+                    <ImagePickerField
+                      label="Work Image"
+                      value={work.imageUrl}
+                      onChange={imageUrl => updateWorkPrice(index, { imageUrl })}
+                    />
+                    <input
+                      value={work.title || ''}
+                      onChange={event =>
+                        updateWorkPrice(index, { title: event.target.value })
+                      }
+                      placeholder="Work name, e.g. Breaker replacement"
+                    />
+                    <input
+                      value={work.description || ''}
+                      onChange={event =>
+                        updateWorkPrice(index, { description: event.target.value })
+                      }
+                      placeholder="Short note shown in app"
+                    />
+                    <input
+                      type="number"
+                      value={String(work.price || '')}
+                      onChange={event =>
+                        updateWorkPrice(index, { price: Number(event.target.value) })
+                      }
+                      placeholder="Price"
+                    />
+                    <button
+                      type="button"
+                      className="secondaryButton"
+                      onClick={() => removeWorkPrice(index)}
+                      disabled={workPrices.length <= 1}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+                <small>Our Services shows the minimum price: {money(minimumWorkPrice)}</small>
               </div>
-              <div className="appServiceBody">
-                <strong>{serviceForm.title || 'Service Title'}</strong>
-                <small>{serviceForm.serviceType || 'Standard Visit'}</small>
-                <p>
-                  {serviceForm.description ||
-                    'Service description appears here exactly like the mobile app card.'}
-                </p>
-                <div className="appServiceFooter">
-                  <b>{money(minimumWorkPrice)}</b>
-                  <button>Book Service</button>
+              <Field
+                label="Duration"
+                value={serviceForm.duration || ''}
+                onChange={duration => setServiceForm({ ...serviceForm, duration })}
+              />
+              <Field
+                label="Badge"
+                value={serviceForm.badge || ''}
+                onChange={badge => setServiceForm({ ...serviceForm, badge })}
+              />
+              <label className="field fieldWide">
+                <span>Description</span>
+                <textarea
+                  value={serviceForm.description || ''}
+                  onChange={event =>
+                    setServiceForm({
+                      ...serviceForm,
+                      description: event.target.value,
+                    })
+                  }
+                />
+              </label>
+              <label className="field fieldWide">
+                <span>Service Details Description</span>
+                <textarea
+                  value={serviceForm.detailDescription || ''}
+                  onChange={event =>
+                    setServiceForm({
+                      ...serviceForm,
+                      detailDescription: event.target.value,
+                    })
+                  }
+                />
+              </label>
+              {renderListEditor(
+                'includes',
+                'Specific Work / Includes',
+                'e.g. Breaker inspection',
+              )}
+              {renderListEditor(
+                'details',
+                'Service Detail Checkmarks',
+                'e.g. Faulty breaker point inspected',
+              )}
+              {renderListEditor(
+                'excludes',
+                'Excludes',
+                'e.g. Breaker/MCB cost',
+              )}
+            </div>
+
+            <div className="mobilePreview">
+              <p className="eyebrow">App preview</p>
+              <div className="appServiceCard">
+                <div
+                  className="appServiceHero"
+                  style={{
+                    backgroundColor: categoryHeroColor(serviceForm.categoryId),
+                    backgroundImage: serviceForm.imageUrl
+                      ? `url(${resolveAssetUrl(serviceForm.imageUrl)})`
+                      : undefined,
+                  }}
+                >
+                  <span>{serviceForm.title || 'Service Title'}</span>
+                </div>
+                <div className="appServiceBody">
+                  <strong>{serviceForm.title || 'Service Title'}</strong>
+                  <small>{serviceForm.serviceType || 'Standard Visit'}</small>
+                  <p>
+                    {serviceForm.description ||
+                      'Service description appears here exactly like the mobile app card.'}
+                  </p>
+                  <div className="appServiceFooter">
+                    <b>{money(minimumWorkPrice)}</b>
+                    <button>Book Service</button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-        <button className="primaryButton" onClick={handleSaveService}>
-          Save Service
-        </button>
-      </section>
-
-      <section className="panel">
-        <div className="panelHead">
-          <div>
-            <p className="eyebrow">Existing</p>
-            <h3>Services</h3>
-          </div>
-          <span className="countPill">{services.length} services</span>
-        </div>
-        <div className="serviceGrid">
-          {services.map(service => (
-            <button
-              className="serviceTile"
-              key={service.id}
-              onClick={() => editService(service)}
-            >
-              <span>{service.categoryId}</span>
-              <strong>{service.title}</strong>
-              <small>
-                {money(service.price)} min - {service.duration}
-              </small>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <button className="primaryButton" onClick={handleSaveService}>
+              Save Service
             </button>
-          ))}
-        </div>
-      </section>
+            {serviceForm.id && (
+              <button
+                type="button"
+                className="secondaryButton"
+                onClick={handleDeleteService}
+                style={{ borderColor: '#FCA5A5', color: '#B91C1C' }}>
+                <Trash2 size={16} />
+                Delete Service
+              </button>
+            )}
+          </div>
+        </section>}
 
-      <CatalogImportPanel onImported={loadData} />
-      <CatalogAssetsEditor categories={categories} subcategories={subcategories} onSaved={loadData} />
-      <CatalogBrowser onEdit={editService} />
+
+
+      {editorOpen && <CatalogImportPanel onImported={loadData} />}
+      {editorOpen && <CatalogAssetsEditor categories={categories} subcategories={subcategories} onSaved={loadData} />}
     </AdminShell>
   );
 }
