@@ -31,6 +31,12 @@ function getReceiptSearchText(receipt: AdminPaymentReceipt) {
     .toLowerCase();
 }
 
+function receiptStageLabel(stage?: AdminPaymentReceipt['paymentStage']) {
+  if (stage === 'advance') return 'Advance payment';
+  if (stage === 'remaining') return 'Remaining payment';
+  return 'Full payment';
+}
+
 function getReceiptServices(receipt: AdminPaymentReceipt) {
   return (
     receipt.items
@@ -135,7 +141,7 @@ export default function PaymentReceiptsPage() {
                     <p>{receipt.customerPhone} • {receipt.customerEmail || 'No email'}</p>
                   </div>
                   <div className="receiptCardActions">
-                    <div className="receiptCardActions"><div className="statusTextCompleted">{receipt.paymentStage} • Rs. {Number(receipt.amount).toLocaleString()}</div><select value={receipt.status} onChange={event => void updateReceiptStatus(receipt.id, event.target.value as any)}><option value="submitted">Submitted</option><option value="verified">Verified</option><option value="rejected">Rejected</option></select></div>
+                    <div className="receiptCardActions"><div className="statusTextCompleted">{receiptStageLabel(receipt.paymentStage)} • Rs. {Number(receipt.amount).toLocaleString()}</div><select value={receipt.status} onChange={event => void updateReceiptStatus(receipt.id, event.target.value as any)}><option value="submitted">Submitted</option><option value="verified">Verified</option><option value="rejected">Rejected</option></select></div>
                     <Link className="ghostButton compactButton" href={`/payment-receipts/${receipt.id}`}>
                       View details
                     </Link>
