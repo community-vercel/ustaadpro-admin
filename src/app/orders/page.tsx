@@ -9,7 +9,7 @@ import {money, parseBookingSchedule} from '@/lib/adminUi';
 
 type FilterKey = 'all' | 'active' | 'completed' | 'cancelled';
 
-const ACTIVE_STATUSES = ['confirmed', 'assigned', 'in_progress'];
+const ACTIVE_STATUSES = ['checking_receipt', 'confirmed', 'assigned', 'in_progress'];
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);

@@ -98,6 +98,7 @@ export default function OrderDetailPage() {
                 handleStatus(event.target.value as AdminOrder['status'])
               }
             >
+              <option value="checking_receipt">Checking receipt</option>
               <option value="confirmed">Confirmed</option>
               <option value="assigned">Assigned</option>
               <option value="in_progress">In Progress</option>

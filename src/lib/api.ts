@@ -50,7 +50,7 @@ export interface AdminUser {
 export interface AdminOrder {
   id: string;
   total: number;
-  status: 'confirmed' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'checking_receipt' | 'confirmed' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
   bookedFor: string;
   paymentMethod: string;
   address: string;
