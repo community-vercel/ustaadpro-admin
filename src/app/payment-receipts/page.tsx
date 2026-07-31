@@ -4,7 +4,7 @@ import {useEffect, useMemo, useState} from 'react';
 import Link from 'next/link';
 import {RefreshCw} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
-import {AdminPaymentReceipt, getPaymentReceipts, updatePaymentReceiptStatus} from '@/lib/api';
+import {AdminPaymentReceipt, getPaymentReceipts, resolveAssetUrl, updatePaymentReceiptStatus} from '@/lib/api';
 
 const receiptsPerPage = 20;
 
@@ -145,6 +145,18 @@ export default function PaymentReceiptsPage() {
                     <Link className="ghostButton compactButton" href={`/payment-receipts/${receipt.id}`}>
                       View details
                     </Link>
+                  </div>
+                </div>
+
+                <div className="receiptPreviewRow">
+                  <img
+                    className="receiptInlinePreview"
+                    src={resolveAssetUrl(receipt.receiptUrl)}
+                    alt={`${receiptStageLabel(receipt.paymentStage)} receipt`}
+                  />
+                  <div>
+                    <strong>{receiptStageLabel(receipt.paymentStage)}</strong>
+                    <p className="mutedLine">This is receipt #{receipt.id}; it is stored separately and never replaces another receipt.</p>
                   </div>
                 </div>
 
