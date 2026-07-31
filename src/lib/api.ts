@@ -303,6 +303,10 @@ export function deleteUser(id: number) {
 export function getPaymentReceipts() {
   return request<AdminPaymentReceipt[]>('/admin/payment-receipts');
 }
+
+export function updatePaymentReceiptStatus(id: number, status: 'submitted' | 'verified' | 'rejected') {
+  return request('/admin/payment-receipts/' + id + '/status', {method: 'PATCH', body: JSON.stringify({status})});
+}
 export function getServices() {
   return request<AdminService[]>('/admin/services');
 }

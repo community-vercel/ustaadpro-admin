@@ -4,7 +4,7 @@ import {useEffect, useMemo, useState} from 'react';
 import Link from 'next/link';
 import {RefreshCw} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
-import {AdminPaymentReceipt, getPaymentReceipts} from '@/lib/api';
+import {AdminPaymentReceipt, getPaymentReceipts, updatePaymentReceiptStatus} from '@/lib/api';
 
 const receiptsPerPage = 20;
 
@@ -51,6 +51,10 @@ export default function PaymentReceiptsPage() {
     setReceipts(data);
   };
 
+  const updateReceiptStatus = async (id: number, status: 'submitted' | 'verified' | 'rejected') => {
+    await updatePaymentReceiptStatus(id, status);
+    await loadData();
+  };
   useEffect(() => {
     loadData().catch(() => setMessage('Could not load payment receipts.'));
   }, []);
@@ -131,7 +135,7 @@ export default function PaymentReceiptsPage() {
                     <p>{receipt.customerPhone} • {receipt.customerEmail || 'No email'}</p>
                   </div>
                   <div className="receiptCardActions">
-                    <div className="statusTextCompleted">{receipt.paymentStage} • Rs. {Number(receipt.amount).toLocaleString()}</div>
+                    <div className="receiptCardActions"><div className="statusTextCompleted">{receipt.paymentStage} • Rs. {Number(receipt.amount).toLocaleString()}</div><select value={receipt.status} onChange={event => void updateReceiptStatus(receipt.id, event.target.value as any)}><option value="submitted">Submitted</option><option value="verified">Verified</option><option value="rejected">Rejected</option></select></div>
                     <Link className="ghostButton compactButton" href={`/payment-receipts/${receipt.id}`}>
                       View details
                     </Link>
