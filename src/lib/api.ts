@@ -153,6 +153,7 @@ export interface AdminHomeSlide {
 export interface AdminSettings {
   inspectionFee: number;
   serviceTaxPercent: number;
+  minimumBookingLeadHours: number;
   currency: string;
   supportPhone: string;
   shippingCost: number;

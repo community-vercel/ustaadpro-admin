@@ -222,6 +222,21 @@ export default function AppControlPage() {
               })
             }
           />
+                    <Field
+            label="Minimum booking lead time (hours)"
+            type="number"
+            value={String(settings.minimumBookingLeadHours)}
+            onChange={minimumBookingLeadHours =>
+              setSettings({
+                ...settings,
+                minimumBookingLeadHours: Math.min(
+                  168,
+                  Math.max(0, Number(minimumBookingLeadHours) || 0),
+                ),
+              })
+            }
+          />
+          <p className="fieldHint">Customers can only select times after this lead time.</p>
           <Field
             label="Currency"
             value={settings.currency}

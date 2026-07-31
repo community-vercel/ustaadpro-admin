@@ -120,6 +120,7 @@ export const emptySlide: Partial<AdminHomeSlide> = {
 export const defaultSettings: AdminSettings = {
   inspectionFee: 500,
   serviceTaxPercent: 12,
+  minimumBookingLeadHours: 4,
   currency: 'PKR',
   supportPhone: '+923001234567',
   shippingCost: 200,
