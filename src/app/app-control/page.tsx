@@ -1,13 +1,14 @@
 'use client';
 
 import {useEffect, useState} from 'react';
-import {RefreshCw} from 'lucide-react';
+import {RefreshCw, Trash2} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
 import {Field, ImagePickerField} from '@/components/AdminFields';
 import {
   AdminCategory,
   AdminHomeSlide,
   AdminSettings,
+  deleteHomeSlide,
   getCategories,
   getHomeSlides,
   getSettings,
@@ -24,6 +25,7 @@ export default function AppControlPage() {
     useState<Partial<AdminHomeSlide>>(emptySlide);
   const [settings, setSettings] = useState<AdminSettings>(defaultSettings);
   const [message, setMessage] = useState('');
+  const [toast, setToast] = useState('');
 
   const loadData = async () => {
     const [nextCategories, nextSlides, nextSettings] = await Promise.all([
@@ -42,12 +44,16 @@ export default function AppControlPage() {
     );
   }, []);
 
+  const showToast = (text: string) => {
+    setToast(text);
+    window.setTimeout(() => setToast(current => current === text ? '' : current), 3500);
+  };
   const handleSaveSlide = async () => {
     try {
       await saveHomeSlide(slideForm);
       setSlideForm(emptySlide);
       await loadData();
-      setMessage('Home header slide saved for the mobile app.');
+      showToast('Header slide saved successfully.');
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : 'Could not save header slide.',
@@ -58,9 +64,21 @@ export default function AppControlPage() {
   const handleSaveSettings = async () => {
     const nextSettings = await saveSettings(settings);
     setSettings(nextSettings);
-    setMessage('Pricing and reward settings saved.');
+    showToast('App settings saved successfully.');
   };
 
+  const handleDeleteSlide = async () => {
+    if (!slideForm.id) return;
+    if (!window.confirm(`Delete the "${slideForm.title || slideForm.id}" slider? This cannot be undone.`)) return;
+    try {
+      await deleteHomeSlide(slideForm.id);
+      setSlideForm(emptySlide);
+      await loadData();
+      showToast('Header slide deleted.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not delete header slide.');
+    }
+  };
   const editSlide = (slide: AdminHomeSlide) => {
     setSlideForm(slide);
     window.scrollTo({top: 0, behavior: 'smooth'});
@@ -77,7 +95,7 @@ export default function AppControlPage() {
         </button>
       }
     >
-      {message && <div className="notice">{message}</div>}
+      {message && <div className="notice">{message}</div>}{toast && <div className="adminToast">{toast}</div>}
 
       <section className="panel">
         <div className="panelHead">
@@ -183,9 +201,10 @@ export default function AppControlPage() {
           </label>
         </div>
 
-        <button className="primaryButton" onClick={handleSaveSlide}>
-          Save Header Slide
-        </button>
+        <div className="inlineActions">
+          <button className="primaryButton" onClick={handleSaveSlide}>Save Header Slide</button>
+          {slideForm.id ? <button className="dangerButton" onClick={handleDeleteSlide}><Trash2 size={16} />Delete Slide</button> : null}
+        </div>
 
         <div className="slideList">
           {slides.map(slide => (

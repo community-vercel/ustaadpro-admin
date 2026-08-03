@@ -2412,3 +2412,7 @@ select.statusSelectCancelled {
 .compactOrderMeta .detailBlock { height: 100%; }
 .compactOrderMeta .detailList { grid-template-columns: 1fr; gap: 8px; }
 @media (max-width: 900px) { .compactOrderMeta .receiptDetailStack { grid-template-columns: 1fr; } }
+.adminToast { position: fixed; z-index: 1000; top: 22px; right: 22px; max-width: min(360px, calc(100vw - 44px)); padding: 13px 16px; border-radius: 10px; background: #087a5c; color: #fff; font-weight: 800; box-shadow: 0 12px 28px rgba(7, 53, 42, .24); animation: adminToastIn .2s ease-out; }
+.inlineActions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.dangerButton { min-height: 42px; padding: 0 15px; display: inline-flex; align-items: center; gap: 7px; border: 0; border-radius: 8px; background: #c51d25; color: #fff; cursor: pointer; font-weight: 800; }
+@keyframes adminToastIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }

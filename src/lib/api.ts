@@ -309,6 +309,9 @@ export function getPaymentReceipts() {
 export function updatePaymentReceiptStatus(id: number, status: 'submitted' | 'verified' | 'rejected') {
   return request('/admin/payment-receipts/' + id + '/status', {method: 'PATCH', body: JSON.stringify({status})});
 }
+export function deleteHomeSlide(id: string) {
+  return request(`/admin/home-slides/${id}`, {method: 'DELETE'});
+}
 export function getServices() {
   return request<AdminService[]>('/admin/services');
 }
