@@ -4,7 +4,7 @@ import {useEffect, useMemo, useState} from 'react';
 import Link from 'next/link';
 import {RefreshCw} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
-import {AdminPaymentReceipt, getPaymentReceipts, resolveAssetUrl, updatePaymentReceiptStatus} from '@/lib/api';
+import {AdminPaymentReceipt, getPaymentReceipts, updatePaymentReceiptStatus} from '@/lib/api';
 
 const ordersPerPage = 20;
 
@@ -80,8 +80,7 @@ export default function PaymentReceiptsPage() {
                     <Link className="ghostButton compactButton" href={`/payment-receipts/${latest.id}`}>View details</Link>
                   </div>
                 </div>
-                <div className="receiptPreviewRow">
-                  {latest.receiptUrl ? <img className="receiptInlinePreview" src={resolveAssetUrl(latest.receiptUrl)} alt="Latest payment receipt" /> : null}
+                <div className="receiptPreviewRow receiptSummaryOnly">
                   <div><strong>{orderReceipts.length} payment receipt{orderReceipts.length === 1 ? '' : 's'}</strong><p className="mutedLine">{orderReceipts.map(item => `${receiptStageLabel(item.paymentStage)}: Rs. ${Number(item.amount || 0).toLocaleString()}`).join(' • ')}</p></div>
                 </div>
                 <div className="receiptSummaryLine"><span>Service booked</span><strong>{getReceiptServices(latest)}</strong><span>Payment summary</span><strong>Paid: Rs. {paid.toLocaleString()} • Remaining: Rs. {balance.toLocaleString()}</strong></div>

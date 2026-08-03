@@ -83,15 +83,14 @@ export default function PaymentReceiptDetailsPage() {
               {relatedReceipts.map(paymentReceipt => {
                 const image = resolveAssetUrl(paymentReceipt.receiptUrl);
                 return (
-                  <article className="receiptItemRow" key={paymentReceipt.id}>
-                    {image ? <img src={image} alt={`${receiptStageLabel(paymentReceipt.paymentStage)} receipt`} /> : <div className="receiptItemIcon"><ReceiptText size={20} /></div>}
-                    <div>
-                      <strong>{receiptStageLabel(paymentReceipt.paymentStage)}</strong>
-                      <p>{money(paymentReceipt.amount)} • {paymentReceipt.status}</p>
-                      <small>Submitted {formatDate(paymentReceipt.createdAt)}</small>
-                    </div>
-                    {image ? <a className="ghostButton compactButton" href={image} target="_blank" rel="noreferrer"><ExternalLink size={15} />View</a> : null}
-                  </article>
+                  <article className="paymentReceiptProofCard" key={paymentReceipt.id}>
+  <div className="paymentReceiptProofMeta">
+    <div><p className="eyebrow">Payment receipt</p><h4>{receiptStageLabel(paymentReceipt.paymentStage)}</h4></div>
+    <strong>{money(paymentReceipt.amount)}</strong>
+  </div>
+  {image ? <a className="paymentReceiptProofImageLink" href={image} target="_blank" rel="noreferrer"><img className="paymentReceiptProofImage" src={image} alt={`${receiptStageLabel(paymentReceipt.paymentStage)} receipt`} /></a> : <div className="empty">No receipt image available.</div>}
+  <div className="paymentReceiptProofFooter"><span>Status: <strong>{paymentReceipt.status}</strong></span><span>Submitted {formatDate(paymentReceipt.createdAt)}</span>{image ? <a className="ghostButton compactButton" href={image} target="_blank" rel="noreferrer"><ExternalLink size={15} />Open image</a> : null}</div>
+</article>
                 );
               })}
             </div>
