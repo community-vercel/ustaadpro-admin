@@ -2403,8 +2403,12 @@ select.statusSelectCancelled {
 .paymentReceiptProofMeta h4 { margin: 3px 0 12px; color: var(--ink); font-size: 1rem; }
 .paymentReceiptProofMeta > strong { color: #087a5c; font-size: 1.1rem; white-space: nowrap; }
 .paymentReceiptProofImageLink { display: block; width: min(100%, 520px); margin: 0 auto; border-radius: 12px; overflow: hidden; background: #eef3f8; }
-.paymentReceiptProofImage { display: block; width: 100%; height: 300px; object-fit: contain; background: #eef3f8; }
+.paymentReceiptProofImage { display: block; width: 100%; height: 180px; object-fit: contain; background: #eef3f8; }
 .paymentReceiptProofFooter { margin-top: 12px; color: var(--muted); font-size: .88rem; font-weight: 700; flex-wrap: wrap; }
-@media (max-width: 640px) { .paymentReceiptProofGrid { grid-template-columns: 1fr; } .paymentReceiptProofImage { height: 220px; } .paymentReceiptProofFooter { align-items: flex-start; flex-direction: column; } }
-.paymentReceiptProofGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+@media (max-width: 640px) { .paymentReceiptProofGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; } .paymentReceiptProofImage { display: block; width: 100%; height: 180px; object-fit: contain; background: #eef3f8; } .paymentReceiptProofFooter { align-items: flex-start; flex-direction: column; } }
+.paymentReceiptProofGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
 .paymentReceiptProofCard { height: 100%; }
+.compactOrderMeta .receiptDetailStack { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.compactOrderMeta .detailBlock { height: 100%; }
+.compactOrderMeta .detailList { grid-template-columns: 1fr; gap: 8px; }
+@media (max-width: 900px) { .compactOrderMeta .receiptDetailStack { grid-template-columns: 1fr; } }

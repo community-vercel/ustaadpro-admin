@@ -79,7 +79,7 @@ export default function PaymentReceiptDetailsPage() {
               <strong>{money(paidTotal)} paid</strong>
             </div>
             <p className="mutedLine">Remaining balance: {money(remainingBalance)}. Every receipt is stored separately and is never replaced.</p>
-            <div className="receiptItemsList">
+            <div className="paymentReceiptProofGrid">
               {relatedReceipts.map(paymentReceipt => {
                 const image = resolveAssetUrl(paymentReceipt.receiptUrl);
                 return (
