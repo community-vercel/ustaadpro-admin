@@ -15,6 +15,12 @@ function formatDate(value?: string) {
   return date.toLocaleString();
 }
 
+function receiptStageLabel(stage?: AdminPaymentReceipt['paymentStage']) {
+  if (stage === 'advance') return 'Advance payment';
+  if (stage === 'remaining') return 'Remaining payment';
+  return 'Full payment';
+}
+
 export default function PaymentReceiptDetailsPage() {
   const params = useParams<{id: string}>();
   const [receipts, setReceipts] = useState<AdminPaymentReceipt[]>([]);
@@ -32,26 +38,25 @@ export default function PaymentReceiptDetailsPage() {
     () => receipts.find(item => String(item.id) === String(params.id)),
     [params.id, receipts],
   );
-
-  const receiptImage = resolveAssetUrl(receipt?.receiptUrl);
+  const relatedReceipts = useMemo(() => {
+    if (!receipt) return [];
+    return receipts
+      .filter(item => item.orderId === receipt.orderId)
+      .sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime());
+  }, [receipt, receipts]);
+  const paidTotal = relatedReceipts
+    .filter(item => item.status !== 'rejected')
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const remainingBalance = Math.max(0, Number(receipt?.orderTotal || 0) - paidTotal);
 
   return (
     <AdminShell
       eyebrow="EasyPaisa proof of payment"
       title="Payment Receipt Details"
-      action={
-        <Link className="ghostButton" href="/payment-receipts">
-          <ArrowLeft size={17} />
-          Back
-        </Link>
-      }
+      action={<Link className="ghostButton" href="/payment-receipts"><ArrowLeft size={17} />Back</Link>}
     >
       {message && <div className="notice">{message}</div>}
-      {loading ? (
-        <div className="empty">Loading payment receipt...</div>
-      ) : !receipt ? (
-        <div className="empty">Payment receipt not found.</div>
-      ) : (
+      {loading ? <div className="empty">Loading payment receipt...</div> : !receipt ? <div className="empty">Payment receipt not found.</div> : (
         <div className="receiptDetailPage">
           <section className="panel receiptDetailHero">
             <div>
@@ -60,46 +65,51 @@ export default function PaymentReceiptDetailsPage() {
               <p>{receipt.customerPhone} • {receipt.customerEmail || 'No email'}</p>
             </div>
             <div className="receiptHeroAmount">
-              <span>{receipt.status}</span>
-              <strong>{money(receipt.amount || receipt.orderTotal)}</strong>
+              <span>{receipt.orderStatus}</span>
+              <strong>{money(receipt.orderTotal)}</strong>
             </div>
           </section>
 
-          <section className="panel receiptDetailGrid">
-            <div className="receiptImagePanel">
-              <div className="receiptImageHeader">
-                <div>
-                  <p className="eyebrow">Uploaded receipt</p>
-                  <h3>Receipt image</h3>
-                </div>
-                {receiptImage ? (
-                  <a className="iconLink" href={receiptImage} target="_blank" rel="noreferrer" aria-label="Open receipt image">
-                    <ExternalLink size={18} />
-                  </a>
-                ) : null}
+          <section className="panel detailBlock">
+            <div className="panelHead">
+              <div>
+                <p className="eyebrow">Payment history</p>
+                <h3>All receipts for this booking</h3>
               </div>
-              {receiptImage ? (
-                <a href={receiptImage} target="_blank" rel="noreferrer">
-                  <img className="receiptDetailImage" src={receiptImage} alt="Payment receipt" />
-                </a>
-              ) : (
-                <div className="empty">No receipt image available.</div>
-              )}
+              <strong>{money(paidTotal)} paid</strong>
             </div>
+            <p className="mutedLine">Remaining balance: {money(remainingBalance)}. Every receipt is stored separately and is never replaced.</p>
+            <div className="receiptItemsList">
+              {relatedReceipts.map(paymentReceipt => {
+                const image = resolveAssetUrl(paymentReceipt.receiptUrl);
+                return (
+                  <article className="receiptItemRow" key={paymentReceipt.id}>
+                    {image ? <img src={image} alt={`${receiptStageLabel(paymentReceipt.paymentStage)} receipt`} /> : <div className="receiptItemIcon"><ReceiptText size={20} /></div>}
+                    <div>
+                      <strong>{receiptStageLabel(paymentReceipt.paymentStage)}</strong>
+                      <p>{money(paymentReceipt.amount)} • {paymentReceipt.status}</p>
+                      <small>Submitted {formatDate(paymentReceipt.createdAt)}</small>
+                    </div>
+                    {image ? <a className="ghostButton compactButton" href={image} target="_blank" rel="noreferrer"><ExternalLink size={15} />View</a> : null}
+                  </article>
+                );
+              })}
+            </div>
+          </section>
 
+          <section className="receiptDetailGrid">
             <div className="receiptDetailStack">
-              <div className="detailBlock">
-                <h3>Payment</h3>
+              <div className="panel detailBlock">
+                <h3>Latest payment</h3>
                 <dl className="detailList">
                   <div><dt>Method</dt><dd>{receipt.paymentMethod}</dd></div>
-                  <div><dt>Amount</dt><dd>{money(receipt.amount || receipt.orderTotal)}</dd></div>
+                  <div><dt>Latest amount</dt><dd>{money(receipt.amount)}</dd></div>
                   <div><dt>Account title</dt><dd>{receipt.accountTitle}</dd></div>
                   <div><dt>Account number</dt><dd>{receipt.accountNumber}</dd></div>
                   <div><dt>Submitted</dt><dd>{formatDate(receipt.createdAt)}</dd></div>
                 </dl>
               </div>
-
-              <div className="detailBlock">
+              <div className="panel detailBlock">
                 <h3>Customer</h3>
                 <dl className="detailList">
                   <div><dt>Name</dt><dd>{receipt.customerName || 'Customer'}</dd></div>
@@ -108,8 +118,7 @@ export default function PaymentReceiptDetailsPage() {
                   <div><dt>User ID</dt><dd>{receipt.userId}</dd></div>
                 </dl>
               </div>
-
-              <div className="detailBlock">
+              <div className="panel detailBlock">
                 <h3>Booking</h3>
                 <dl className="detailList">
                   <div><dt>Order ID</dt><dd>{receipt.orderId}</dd></div>
@@ -123,26 +132,12 @@ export default function PaymentReceiptDetailsPage() {
           </section>
 
           <section className="panel">
-            <div className="panelHead">
-              <div>
-                <p className="eyebrow">Service work</p>
-                <h3>Booked items</h3>
-              </div>
-              <ReceiptText size={21} />
-            </div>
+            <div className="panelHead"><div><p className="eyebrow">Service work</p><h3>Booked items</h3></div><ReceiptText size={21} /></div>
             <div className="receiptItemsList">
               {receipt.items.map(item => (
                 <div className="receiptItemRow" key={`${receipt.id}-${item.serviceId}-${item.serviceWorkPriceId || item.title}`}>
-                  {item.imageUrl ? (
-                    <img src={resolveAssetUrl(item.imageUrl)} alt="" />
-                  ) : (
-                    <div className="receiptItemIcon"><ReceiptText size={20} /></div>
-                  )}
-                  <div>
-                    <strong>{item.serviceWorkTitle || item.title}</strong>
-                    <p>{item.serviceType || item.categoryId}</p>
-                    {item.detailDescription ? <small>{item.detailDescription}</small> : null}
-                  </div>
+                  {item.imageUrl ? <img src={resolveAssetUrl(item.imageUrl)} alt="" /> : <div className="receiptItemIcon"><ReceiptText size={20} /></div>}
+                  <div><strong>{item.serviceWorkTitle || item.title}</strong><p>{item.serviceType || item.categoryId}</p>{item.detailDescription ? <small>{item.detailDescription}</small> : null}</div>
                   <span>{item.quantity}x {money(item.price)}</span>
                 </div>
               ))}

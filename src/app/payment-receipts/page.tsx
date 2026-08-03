@@ -6,29 +6,11 @@ import {RefreshCw} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
 import {AdminPaymentReceipt, getPaymentReceipts, resolveAssetUrl, updatePaymentReceiptStatus} from '@/lib/api';
 
-const receiptsPerPage = 20;
+const ordersPerPage = 20;
 
 function getReceiptSearchText(receipt: AdminPaymentReceipt) {
-  return [
-    receipt.orderId,
-    receipt.customerName,
-    receipt.customerPhone,
-    receipt.customerEmail,
-    receipt.paymentMethod,
-    receipt.status,
-    receipt.orderStatus,
-    receipt.bookedFor,
-    receipt.address,
-    ...receipt.items.flatMap(item => [
-      item.title,
-      item.serviceWorkTitle,
-      item.serviceType,
-      item.categoryId,
-    ]),
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
+  return [receipt.orderId, receipt.customerName, receipt.customerPhone, receipt.customerEmail, receipt.paymentMethod, receipt.status, receipt.orderStatus, receipt.bookedFor, receipt.address, ...receipt.items.flatMap(item => [item.title, item.serviceWorkTitle, item.serviceType, item.categoryId])]
+    .filter(Boolean).join(' ').toLowerCase();
 }
 
 function receiptStageLabel(stage?: AdminPaymentReceipt['paymentStage']) {
@@ -38,12 +20,7 @@ function receiptStageLabel(stage?: AdminPaymentReceipt['paymentStage']) {
 }
 
 function getReceiptServices(receipt: AdminPaymentReceipt) {
-  return (
-    receipt.items
-      .map(item => item.serviceWorkTitle || item.title)
-      .filter(Boolean)
-      .join(', ') || 'Service not available'
-  );
+  return receipt.items.map(item => item.serviceWorkTitle || item.title).filter(Boolean).join(', ') || 'Service not available';
 }
 
 export default function PaymentReceiptsPage() {
@@ -52,167 +29,67 @@ export default function PaymentReceiptsPage() {
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const loadData = async () => {
-    const data = await getPaymentReceipts();
-    setReceipts(data);
-  };
-
+  const loadData = async () => setReceipts(await getPaymentReceipts());
   const updateReceiptStatus = async (id: number, status: 'submitted' | 'verified' | 'rejected') => {
     await updatePaymentReceiptStatus(id, status);
     await loadData();
   };
-  useEffect(() => {
-    loadData().catch(() => setMessage('Could not load payment receipts.'));
-  }, []);
+  useEffect(() => { loadData().catch(() => setMessage('Could not load payment receipts.')); }, []);
 
-  const filteredReceipts = useMemo(() => {
+  const paymentOrders = useMemo(() => {
+    const byOrder = new Map<string, AdminPaymentReceipt[]>();
+    receipts.forEach(receipt => {
+      const current = byOrder.get(receipt.orderId) || [];
+      current.push(receipt);
+      byOrder.set(receipt.orderId, current);
+    });
+    return Array.from(byOrder.values()).map(orderReceipts => {
+      const sorted = [...orderReceipts].sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+      const latest = sorted[0];
+      const paid = sorted.filter(item => item.status !== 'rejected').reduce((sum, item) => sum + Number(item.amount || 0), 0);
+      return {latest, receipts: sorted, paid, balance: Math.max(0, Number(latest.orderTotal || 0) - paid)};
+    });
+  }, [receipts]);
+  const filteredOrders = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return receipts;
-    return receipts.filter(receipt => getReceiptSearchText(receipt).includes(query));
-  }, [receipts, search]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredReceipts.length / receiptsPerPage));
+    return query ? paymentOrders.filter(order => order.receipts.some(receipt => getReceiptSearchText(receipt).includes(query))) : paymentOrders;
+  }, [paymentOrders, search]);
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ordersPerPage));
   const safeCurrentPage = Math.min(currentPage, totalPages);
-  const firstVisible = filteredReceipts.length
-    ? (safeCurrentPage - 1) * receiptsPerPage + 1
-    : 0;
-  const lastVisible = Math.min(safeCurrentPage * receiptsPerPage, filteredReceipts.length);
-  const visibleReceipts = useMemo(() => {
-    const start = (safeCurrentPage - 1) * receiptsPerPage;
-    return filteredReceipts.slice(start, start + receiptsPerPage);
-  }, [filteredReceipts, safeCurrentPage]);
+  const firstVisible = filteredOrders.length ? (safeCurrentPage - 1) * ordersPerPage + 1 : 0;
+  const lastVisible = Math.min(safeCurrentPage * ordersPerPage, filteredOrders.length);
+  const visibleOrders = useMemo(() => filteredOrders.slice((safeCurrentPage - 1) * ordersPerPage, safeCurrentPage * ordersPerPage), [filteredOrders, safeCurrentPage]);
 
   return (
-    <AdminShell
-      eyebrow="EasyPaisa proof of payment"
-      title="Payment Receipts"
-      action={
-        <button className="ghostButton" onClick={() => void loadData()}>
-          <RefreshCw size={17} />
-          Refresh
-        </button>
-      }
-    >
+    <AdminShell eyebrow="EasyPaisa proof of payment" title="Payment Receipts" action={<button className="ghostButton" onClick={() => void loadData()}><RefreshCw size={17} />Refresh</button>}>
       {message && <div className="notice">{message}</div>}
       <section className="panel">
-        <div className="panelHead">
-          <div>
-            <p className="eyebrow">Submitted receipts</p>
-            <h3>Receipts</h3>
-          </div>
-          <span className="countPill">
-            {filteredReceipts.length
-              ? `${firstVisible}-${lastVisible} of ${filteredReceipts.length} receipts`
-              : `${filteredReceipts.length} receipts`}
-          </span>
-        </div>
-
+        <div className="panelHead"><div><p className="eyebrow">Bookings with payments</p><h3>Payment orders</h3></div><span className="countPill">{filteredOrders.length ? `${firstVisible}-${lastVisible} of ${filteredOrders.length} orders` : '0 orders'}</span></div>
         <div className="receiptToolbar">
-          <label className="field">
-            <span>Search user, phone, email, order, or service</span>
-            <input
-              value={search}
-              onChange={event => {
-                setSearch(event.target.value);
-                setCurrentPage(1);
-              }}
-              placeholder="Anis, +9234, email, USTAADPRO, AC Gas..."
-            />
-          </label>
-          <div className="receiptPageSizeNote">20 receipts per page</div>
+          <label className="field"><span>Search user, phone, email, order, or service</span><input value={search} onChange={event => { setSearch(event.target.value); setCurrentPage(1); }} placeholder="Anis, +9234, email, USTAADPRO, AC Gas..." /></label>
+          <div className="receiptPageSizeNote">One card per booking</div>
         </div>
-
-        {!receipts.length ? (
-          <div className="empty">No payment receipts uploaded yet.</div>
-        ) : !filteredReceipts.length ? (
-          <div className="empty">No receipts match your search.</div>
-        ) : (
+        {!receipts.length ? <div className="empty">No payment receipts uploaded yet.</div> : !filteredOrders.length ? <div className="empty">No payment orders match your search.</div> : (
           <div className="ordersList">
-            {visibleReceipts.map(receipt => {
-              const orderReceipts = receipts.filter(item => item.orderId === receipt.orderId);
-              const paid = orderReceipts.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-              const balance = Math.max(0, Number(receipt.orderTotal || 0) - paid);
-              return (
-              <div className="orderCard" key={receipt.id}>
+            {visibleOrders.map(({latest, receipts: orderReceipts, paid, balance}) => (
+              <div className="orderCard" key={latest.orderId}>
                 <div className="orderCardHead">
-                  <div>
-                    <p className="eyebrow">{receipt.orderId}</p>
-                    <h3>{receipt.customerName || 'Customer'}</h3>
-                    <p>{receipt.customerPhone} • {receipt.customerEmail || 'No email'}</p>
-                  </div>
+                  <div><p className="eyebrow">{latest.orderId}</p><h3>{latest.customerName || 'Customer'}</h3><p>{latest.customerPhone} • {latest.customerEmail || 'No email'}</p></div>
                   <div className="receiptCardActions">
-                    <div className="receiptCardActions"><div className="statusTextCompleted">{receiptStageLabel(receipt.paymentStage)} • Rs. {Number(receipt.amount).toLocaleString()}</div><select value={receipt.status} onChange={event => void updateReceiptStatus(receipt.id, event.target.value as any)}><option value="submitted">Submitted</option><option value="verified">Verified</option><option value="rejected">Rejected</option></select></div>
-                    <Link className="ghostButton compactButton" href={`/payment-receipts/${receipt.id}`}>
-                      View details
-                    </Link>
+                    <select value={latest.status} onChange={event => void updateReceiptStatus(latest.id, event.target.value as 'submitted' | 'verified' | 'rejected')}><option value="submitted">Submitted</option><option value="verified">Verified</option><option value="rejected">Rejected</option></select>
+                    <Link className="ghostButton compactButton" href={`/payment-receipts/${latest.id}`}>View details</Link>
                   </div>
                 </div>
-
                 <div className="receiptPreviewRow">
-                  <img
-                    className="receiptInlinePreview"
-                    src={resolveAssetUrl(receipt.receiptUrl)}
-                    alt={`${receiptStageLabel(receipt.paymentStage)} receipt`}
-                  />
-                  <div>
-                    <strong>{receiptStageLabel(receipt.paymentStage)}</strong>
-                    <p className="mutedLine">This is receipt #{receipt.id}; it is stored separately and never replaces another receipt.</p>
-                  </div>
+                  {latest.receiptUrl ? <img className="receiptInlinePreview" src={resolveAssetUrl(latest.receiptUrl)} alt="Latest payment receipt" /> : null}
+                  <div><strong>{orderReceipts.length} payment receipt{orderReceipts.length === 1 ? '' : 's'}</strong><p className="mutedLine">{orderReceipts.map(item => `${receiptStageLabel(item.paymentStage)}: Rs. ${Number(item.amount || 0).toLocaleString()}`).join(' • ')}</p></div>
                 </div>
-
-                <div className="receiptSummaryLine">
-                  <span>Service booked</span>
-                  <strong>{getReceiptServices(receipt)}</strong>
-                  <span>Payment summary</span>
-                  <strong>Paid: Rs. {paid.toLocaleString()} • Remaining: Rs. {balance.toLocaleString()}</strong>
-                </div>
+                <div className="receiptSummaryLine"><span>Service booked</span><strong>{getReceiptServices(latest)}</strong><span>Payment summary</span><strong>Paid: Rs. {paid.toLocaleString()} • Remaining: Rs. {balance.toLocaleString()}</strong></div>
               </div>
-              );
-            })}
+            ))}
           </div>
         )}
-
-        {filteredReceipts.length > 0 && (
-          <div className="paginationBar">
-            <span>
-              Showing {firstVisible}-{lastVisible} of {filteredReceipts.length}{' '}
-              matching receipts
-            </span>
-            <div className="paginationActions">
-              <button
-                className="ghostButton"
-                disabled={safeCurrentPage === 1}
-                onClick={() => setCurrentPage(1)}
-              >
-                First
-              </button>
-              <button
-                className="ghostButton"
-                disabled={safeCurrentPage === 1}
-                onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
-              >
-                Previous
-              </button>
-              <strong>
-                Page {safeCurrentPage} of {totalPages}
-              </strong>
-              <button
-                className="ghostButton"
-                disabled={safeCurrentPage === totalPages}
-                onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
-              >
-                Next
-              </button>
-              <button
-                className="ghostButton"
-                disabled={safeCurrentPage === totalPages}
-                onClick={() => setCurrentPage(totalPages)}
-              >
-                Last
-              </button>
-            </div>
-          </div>
-        )}
+        {filteredOrders.length > 0 && <div className="paginationBar"><span>Showing {firstVisible}-{lastVisible} of {filteredOrders.length} matching orders</span><div className="paginationActions"><button className="ghostButton" disabled={safeCurrentPage === 1} onClick={() => setCurrentPage(1)}>First</button><button className="ghostButton" disabled={safeCurrentPage === 1} onClick={() => setCurrentPage(page => Math.max(1, page - 1))}>Previous</button><strong>Page {safeCurrentPage} of {totalPages}</strong><button className="ghostButton" disabled={safeCurrentPage === totalPages} onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}>Next</button><button className="ghostButton" disabled={safeCurrentPage === totalPages} onClick={() => setCurrentPage(totalPages)}>Last</button></div></div>}
       </section>
     </AdminShell>
   );
