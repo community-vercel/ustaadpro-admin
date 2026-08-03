@@ -2405,4 +2405,6 @@ select.statusSelectCancelled {
 .paymentReceiptProofImageLink { display: block; width: min(100%, 520px); margin: 0 auto; border-radius: 12px; overflow: hidden; background: #eef3f8; }
 .paymentReceiptProofImage { display: block; width: 100%; height: 300px; object-fit: contain; background: #eef3f8; }
 .paymentReceiptProofFooter { margin-top: 12px; color: var(--muted); font-size: .88rem; font-weight: 700; flex-wrap: wrap; }
-@media (max-width: 640px) { .paymentReceiptProofImage { height: 220px; } .paymentReceiptProofFooter { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 640px) { .paymentReceiptProofGrid { grid-template-columns: 1fr; } .paymentReceiptProofImage { height: 220px; } .paymentReceiptProofFooter { align-items: flex-start; flex-direction: column; } }
+.paymentReceiptProofGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+.paymentReceiptProofCard { height: 100%; }
