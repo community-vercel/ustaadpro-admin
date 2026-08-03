@@ -99,7 +99,17 @@ export default function AppControlPage() {
             onChange={badge => setSlideForm({...slideForm, badge})}
           />
           <label className="field">
-            <span>Category target</span>
+            <span>Redirect page</span>
+            <select value={slideForm.redirectType || 'category'} onChange={event => setSlideForm({...slideForm, redirectType: event.target.value as AdminHomeSlide['redirectType']})}>
+              <option value="category">A main service category</option>
+              <option value="all_services">All Services</option>
+              <option value="quick_services">Quick Services</option>
+              <option value="subscriptions">Maintenance packages</option>
+            </select>
+            <small>Choose the page the customer opens by tapping this banner.</small>
+          </label>
+          {(slideForm.redirectType || 'category') === 'category' ? <label className="field">
+            <span>Service category to open</span>
             <select
               value={slideForm.categoryId || 'home'}
               onChange={event => {
@@ -119,7 +129,7 @@ export default function AppControlPage() {
                 </option>
               ))}
             </select>
-          </label>
+          </label> : null}
           <Field
             label="Title"
             value={slideForm.title || ''}

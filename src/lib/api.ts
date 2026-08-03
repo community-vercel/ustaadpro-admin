@@ -142,6 +142,7 @@ export interface AdminHomeSlide {
   buttonLabel: string;
   categoryId: string;
   categoryTitle: string;
+  redirectType?: 'category' | 'all_services' | 'quick_services' | 'subscriptions';
   visual: string;
   imageUrl?: string;
   primaryColor: string;
