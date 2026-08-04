@@ -1,6 +1,7 @@
 'use client';
 
 import {useEffect, useMemo, useState} from 'react';
+import {useSearchParams} from 'next/navigation';
 import Link from 'next/link';
 import {RefreshCw} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
@@ -24,6 +25,8 @@ function getReceiptServices(receipt: AdminPaymentReceipt) {
 }
 
 export default function PaymentReceiptsPage() {
+  const searchParams = useSearchParams();
+  const selectedOrderId = searchParams.get('orderId')?.trim() || '';
   const [receipts, setReceipts] = useState<AdminPaymentReceipt[]>([]);
   const [message, setMessage] = useState('');
   const [search, setSearch] = useState('');
@@ -52,8 +55,11 @@ export default function PaymentReceiptsPage() {
   }, [receipts]);
   const filteredOrders = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return query ? paymentOrders.filter(order => order.receipts.some(receipt => getReceiptSearchText(receipt).includes(query))) : paymentOrders;
-  }, [paymentOrders, search]);
+    return paymentOrders.filter(order => {
+      if (selectedOrderId && order.latest.orderId !== selectedOrderId) return false;
+      return !query || order.receipts.some(receipt => getReceiptSearchText(receipt).includes(query));
+    });
+  }, [paymentOrders, search, selectedOrderId]);
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ordersPerPage));
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const firstVisible = filteredOrders.length ? (safeCurrentPage - 1) * ordersPerPage + 1 : 0;
@@ -64,12 +70,12 @@ export default function PaymentReceiptsPage() {
     <AdminShell eyebrow="EasyPaisa proof of payment" title="Payment Receipts" action={<button className="ghostButton" onClick={() => void loadData()}><RefreshCw size={17} />Refresh</button>}>
       {message && <div className="notice">{message}</div>}
       <section className="panel">
-        <div className="panelHead"><div><p className="eyebrow">Bookings with payments</p><h3>Payment orders</h3></div><span className="countPill">{filteredOrders.length ? `${firstVisible}-${lastVisible} of ${filteredOrders.length} orders` : '0 orders'}</span></div>
+        <div className="panelHead"><div><p className="eyebrow">{selectedOrderId ? `Payment details for ${selectedOrderId}` : 'Bookings with payments'}</p><h3>{selectedOrderId ? 'Order payment details' : 'Payment orders'}</h3></div><div className="topbarActions">{selectedOrderId ? <Link className="ghostButton compactButton" href="/payment-receipts">All payments</Link> : null}<span className="countPill">{filteredOrders.length ? `${firstVisible}-${lastVisible} of ${filteredOrders.length} orders` : '0 orders'}</span></div></div>
         <div className="receiptToolbar">
           <label className="field"><span>Search user, phone, email, order, or service</span><input value={search} onChange={event => { setSearch(event.target.value); setCurrentPage(1); }} placeholder="Anis, +9234, email, USTAADPRO, AC Gas..." /></label>
           <div className="receiptPageSizeNote">One card per booking</div>
         </div>
-        {!receipts.length ? <div className="empty">No payment receipts uploaded yet.</div> : !filteredOrders.length ? <div className="empty">No payment orders match your search.</div> : (
+        {!receipts.length ? <div className="empty">No payment receipts uploaded yet.</div> : !filteredOrders.length ? <div className="empty">{selectedOrderId ? 'No payment receipt has been uploaded for this order yet.' : 'No payment orders match your search.'}</div> : (
           <div className="ordersList">
             {visibleOrders.map(({latest, receipts: orderReceipts, paid, balance}) => (
               <div className="orderCard" key={latest.orderId}>

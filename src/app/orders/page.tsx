@@ -145,12 +145,20 @@ export default function OrdersPage() {
                         {order.status.replace('_', ' ')}
                       </strong>
                     </div>
-                    <Link
-                      className="secondaryButton"
-                      href={`/orders/${order.id}`}
-                    >
-                      View details
-                    </Link>
+                    <div className="orderRowActions">
+                      <Link
+                        className="ghostButton compactButton"
+                        href={`/payment-receipts?orderId=${encodeURIComponent(order.id)}`}
+                      >
+                        Payment details
+                      </Link>
+                      <Link
+                        className="secondaryButton"
+                        href={`/orders/${order.id}`}
+                      >
+                        View details
+                      </Link>
+                    </div>
                   </div>
                   {order.status === 'cancelled' ? (
                     <div className="cancelReasonBox">
