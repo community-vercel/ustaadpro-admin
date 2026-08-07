@@ -51,7 +51,7 @@ export default function OrderDetailPage() {
 
   const schedule = order ? parseBookingSchedule(order.bookedFor) : null;
   const savedServicesSubtotal = order
-    ? Math.max(0, order.total - order.inspectionFee - order.tax)
+    ? Math.max(0, (order.originalTotal ?? order.total) - order.inspectionFee - order.tax)
     : 0;
   const baseServicesSubtotal = order
     ? order.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
@@ -112,6 +112,9 @@ export default function OrderDetailPage() {
             <DetailBlock label="Phone" value={order.customerPhone} />
             <DetailBlock label="Email" value={order.customerEmail} />
             <DetailBlock label="Payment" value={order.paymentMethod} />
+            {Number(order.walletUsed || 0) > 0 && (
+              <DetailBlock label="Wallet applied" value={`-${money(order.walletUsed || 0)}`} />
+            )}
             <DetailBlock
               label={schedule?.isRecurring ? 'Recurring From' : 'Booking Date'}
               value={schedule?.start || order.bookedFor}
@@ -204,7 +207,11 @@ export default function OrderDetailPage() {
               value={money(order.inspectionFee)}
             />
             <DetailBlock label="Platform charges" value={money(order.tax)} />
-            <DetailBlock label="Total" value={money(order.total)} />
+            <DetailBlock label="Original total" value={money(order.originalTotal ?? order.total)} />
+            {Number(order.walletUsed || 0) > 0 && (
+              <DetailBlock label="Wallet adjustment" value={`-${money(order.walletUsed || 0)}`} />
+            )}
+            <DetailBlock label="Amount payable" value={money(order.total)} />
           </div>
         </section>
       )}

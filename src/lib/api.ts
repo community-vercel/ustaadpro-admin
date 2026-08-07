@@ -62,6 +62,8 @@ export interface AdminOrder {
   rewardPointsEarned?: number;
   rewardPointsRedeemed?: number;
   rewardDiscount?: number;
+  walletUsed?: number;
+  originalTotal?: number;
   customerName: string;
   customerPhone: string;
   customerEmail: string;

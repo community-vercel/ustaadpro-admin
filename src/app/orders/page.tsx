@@ -130,8 +130,11 @@ export default function OrdersPage() {
                       <strong>{serviceSummary(order)}</strong>
                     </div>
                     <div>
-                      <span>Total</span>
-                      <strong>{money(order.total)}</strong>
+                      <span>{Number(order.walletUsed || 0) > 0 ? 'Original / Payable' : 'Total'}</span>
+                      <strong>{money(order.originalTotal ?? order.total)}</strong>
+                      {Number(order.walletUsed || 0) > 0 && (
+                        <small>Wallet -{money(order.walletUsed || 0)} · Due {money(order.total)}</small>
+                      )}
                     </div>
                     <div>
                       <span>Status</span>
