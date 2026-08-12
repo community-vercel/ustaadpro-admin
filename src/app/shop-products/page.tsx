@@ -1,192 +1,24 @@
 'use client';
 
-import {useEffect, useState} from 'react';
-import {PackagePlus, RefreshCw} from 'lucide-react';
+import {useCallback, useEffect, useState} from 'react';
+import Link from 'next/link';
+import {Edit2, Eye, PackagePlus, RefreshCw, Search} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
-import {Field, ImagePickerField} from '@/components/AdminFields';
-import {
-  AdminShopProduct,
-  getShopProducts,
-  resolveAssetUrl,
-  saveShopProduct,
-} from '@/lib/api';
+import {AdminShopProduct, getShopProducts, resolveAssetUrl} from '@/lib/api';
 import {money} from '@/lib/adminUi';
 
-const emptyProduct: Partial<AdminShopProduct> = {
-  title: '',
-  category: 'Home Care',
-  description: '',
-  price: 0,
-  originalPrice: 0,
-  imageUrl: '',
-  stock: 10,
-  isActive: true,
-};
-
-export default function ShopProductsPage() {
-  const [products, setProducts] = useState<AdminShopProduct[]>([]);
-  const [form, setForm] = useState<Partial<AdminShopProduct>>(emptyProduct);
-  const [message, setMessage] = useState('');
-
-  const loadData = async () => {
-    setProducts(await getShopProducts());
-  };
-
-  useEffect(() => {
-    loadData().catch(() => setMessage('Could not load shop products.'));
-  }, []);
-
-  const handleSave = async () => {
-    try {
-      await saveShopProduct(form);
-      setForm(emptyProduct);
-      await loadData();
-      setMessage('Shop product saved.');
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Could not save product.');
-    }
-  };
-
-  return (
-    <AdminShell
-      eyebrow="Store catalog"
-      title="Shop Products"
-      action={
-        <button className="ghostButton" onClick={() => loadData()}>
-          <RefreshCw size={17} />
-          Refresh
-        </button>
-      }
-    >
-      {message && <div className="notice">{message}</div>}
-
-      <section className="panel">
-        <div className="panelHead">
-          <div>
-            <p className="eyebrow">Products shown in mobile Store tab</p>
-            <h3>{form.id ? 'Edit Product' : 'Add Product'}</h3>
-          </div>
-          <PackagePlus size={22} />
-        </div>
-
-        <div className="serviceEditor">
-          <div className="formGrid">
-            <Field
-              label="Title"
-              value={form.title || ''}
-              onChange={title => setForm({...form, title})}
-            />
-            <Field
-              label="Category"
-              value={form.category || ''}
-              onChange={category => setForm({...form, category})}
-            />
-            <ImagePickerField
-              label="Product Image"
-              value={form.imageUrl}
-              onChange={imageUrl => setForm({...form, imageUrl})}
-            />
-            <Field
-              label="Price (PKR)"
-              type="number"
-              value={String(form.price || '')}
-              onChange={price => setForm({...form, price: Number(price)})}
-            />
-            <Field
-              label="Original Price (PKR)"
-              type="number"
-              value={String(form.originalPrice || '')}
-              onChange={originalPrice =>
-                setForm({...form, originalPrice: Number(originalPrice)})
-              }
-            />
-            <Field
-              label="Stock"
-              type="number"
-              value={String(form.stock || '')}
-              onChange={stock => setForm({...form, stock: Number(stock)})}
-            />
-            <label className="field">
-              <span>Status</span>
-              <select
-                value={form.isActive === false ? 'inactive' : 'active'}
-                onChange={event =>
-                  setForm({...form, isActive: event.target.value === 'active'})
-                }
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </label>
-            <label className="field fieldWide">
-              <span>Description</span>
-              <textarea
-                value={form.description || ''}
-                onChange={event =>
-                  setForm({...form, description: event.target.value})
-                }
-              />
-            </label>
-          </div>
-
-          <div className="mobilePreview">
-            <p className="eyebrow">Store preview</p>
-            <div className="appServiceCard">
-              <div
-                className="appServiceHero"
-                style={{
-                  backgroundImage: form.imageUrl
-                    ? `url(${resolveAssetUrl(form.imageUrl)})`
-                    : undefined,
-                }}
-              >
-                <span>{form.category || 'Product'}</span>
-              </div>
-              <div className="appServiceBody">
-                <strong>{form.title || 'Product title'}</strong>
-                <small>{form.category || 'Category'}</small>
-                <p>{form.description || 'Product description appears here.'}</p>
-                <div className="appServiceFooter">
-                  <b>{money(Number(form.price || 0))}</b>
-                  <button>Add</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <button className="primaryButton" onClick={handleSave}>
-          Save Product
-        </button>
-      </section>
-
-      <section className="panel">
-        <div className="panelHead">
-          <div>
-            <p className="eyebrow">Existing</p>
-            <h3>Products</h3>
-          </div>
-          <span className="countPill">{products.length} products</span>
-        </div>
-        <div className="serviceGrid">
-          {products.map(product => (
-            <button
-              className="serviceTile"
-              key={product.id}
-              onClick={() => {
-                setForm(product);
-                window.scrollTo({top: 0, behavior: 'smooth'});
-              }}
-            >
-              <span>{product.category}</span>
-              <strong>{product.title}</strong>
-              <small>
-                {money(product.price)} - stock {product.stock}
-              </small>
-            </button>
-          ))}
-        </div>
-      </section>
-    </AdminShell>
-  );
+const PAGE_SIZE = 10;
+export default function ShopProductsPage(){
+ const [products,setProducts]=useState<AdminShopProduct[]>([]); const [total,setTotal]=useState(0); const [page,setPage]=useState(1); const [search,setSearch]=useState(''); const [category,setCategory]=useState('All'); const [categories,setCategories]=useState<Array<{name:string;total:number}>>([]); const [loading,setLoading]=useState(true); const [message,setMessage]=useState('');
+ const load=useCallback(async()=>{setLoading(true);setMessage('');try{const data=await getShopProducts({page,limit:PAGE_SIZE,search,category});setProducts(data.products || []);setTotal(Number(data.total || 0));setCategories(data.categories || []);}catch{setMessage('Could not load shop products.')}finally{setLoading(false)}},[page,search,category]);
+ useEffect(()=>{const timer=setTimeout(()=>void load(),search?300:0);return()=>clearTimeout(timer)},[load,search]);
+ const pages=Math.max(1,Math.ceil(total/PAGE_SIZE)); const first=total?(page-1)*PAGE_SIZE+1:0; const last=Math.min(page*PAGE_SIZE,total);
+ return <AdminShell eyebrow="Store catalog" title="Shop Products" action={<div className="pageActions"><button className="ghostButton" onClick={()=>void load()}><RefreshCw size={17}/>Refresh</button><Link className="primaryButton" href="/shop-products/new"><PackagePlus size={17}/>Add Product</Link></div>}>
+  {message&&<div className="notice">{message}</div>}
+  <section className="panel">
+   <div className="productListToolbar"><label className="productSearch"><Search size={17}/><input value={search} onChange={e=>{setSearch(e.target.value);setPage(1)}} placeholder="Search products..."/></label><select value={category} onChange={e=>{setCategory(e.target.value);setPage(1)}}><option>All</option>{categories.map(item=><option key={item.name}>{item.name}</option>)}</select></div>
+   <div className="adminTableWrap"><table className="productTable"><thead><tr><th>Product</th><th>Category</th><th>Stock</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead><tbody>{products.map(product=><tr key={product.id}><td><div className="productTableIdentity">{product.imageUrl?<img src={resolveAssetUrl(product.imageUrl)} alt=""/>:<div className="productThumbFallback">P</div>}<div><strong>{product.title}</strong><small>{product.id}</small></div></div></td><td>{product.category}</td><td><span className={product.stock>0?'stockOk':'stockOut'}>{product.stock>0?product.stock:'Out of stock'}</span></td><td><strong>{money(product.price)}</strong>{product.originalPrice>product.price&&<small className="tableSubtext">{money(product.originalPrice)}</small>}</td><td><span className={product.isActive?'productStatus active':'productStatus inactive'}>{product.isActive?'Active':'Inactive'}</span></td><td><div className="rowActions"><Link title="View details" href={`/shop-products/${encodeURIComponent(product.id)}`}><Eye size={17}/></Link><Link title="Edit product" href={`/shop-products/${encodeURIComponent(product.id)}/edit`}><Edit2 size={17}/></Link></div></td></tr>)}</tbody></table>{!loading&&!products.length&&<div className="empty">No products found.</div>}{loading&&<div className="empty">Loading products...</div>}</div>
+   <div className="paginationBar"><span>Showing {first}-{last} of {total}</span><div className="paginationActions"><button className="ghostButton" disabled={page<=1} onClick={()=>setPage(v=>v-1)}>Previous</button><strong>Page {page} of {pages}</strong><button className="ghostButton" disabled={page>=pages} onClick={()=>setPage(v=>v+1)}>Next</button></div></div>
+  </section>
+ </AdminShell>
 }

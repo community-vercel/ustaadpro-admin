@@ -151,6 +151,7 @@ export interface AdminHomeSlide {
   secondaryColor: string;
   sortOrder: number;
   isActive: boolean;
+  createdAt?: string;
 }
 
 export interface AdminSettings {
@@ -212,6 +213,7 @@ export interface AdminShopProduct {
   imageUrl?: string;
   stock: number;
   isActive: boolean;
+  createdAt?: string;
 }
 
 export interface AdminShopOrder {
@@ -436,8 +438,90 @@ export function deleteSubscription(id: string) {
   });
 }
 
-export function getShopProducts() {
-  return request<AdminShopProduct[]>('/admin/shop/products');
+export interface AdminShopProductsPage {
+  products: AdminShopProduct[];
+  total: number;
+  page: number;
+  limit: number;
+  categories: Array<{name: string; total: number}>;
+}
+
+export async function getShopProducts(options: {page?: number; limit?: number; search?: string; category?: string} = {}): Promise<AdminShopProductsPage> {
+  const params = new URLSearchParams();
+  if (options.page) params.set('page', String(options.page));
+  if (options.limit) params.set('limit', String(options.limit));
+  if (options.search) params.set('search', options.search);
+  if (options.category && options.category !== 'All') params.set('category', options.category);
+  const query = params.toString();
+  const response = await request<AdminShopProductsPage | AdminShopProduct[]>(
+    `/admin/shop/products${query ? `?${query}` : ''}`,
+  );
+
+  if (!Array.isArray(response)) {
+    return {
+      products: Array.isArray(response.products) ? response.products : [],
+      total: Number(response.total || 0),
+      page: Number(response.page || options.page || 1),
+      limit: Number(response.limit || options.limit || 10),
+      categories: Array.isArray(response.categories) ? response.categories : [],
+    };
+  }
+
+  // Backward compatibility while an older backend deployment still returns
+  // a plain array. Apply filtering and pagination locally until it is updated.
+  const search = String(options.search || '').trim().toLowerCase();
+  const category = options.category || 'All';
+  const categoryTotals = new Map<string, number>();
+  response.forEach(product => {
+    categoryTotals.set(product.category, (categoryTotals.get(product.category) || 0) + 1);
+  });
+  const filtered = response.filter(product => {
+    const matchesCategory = category === 'All' || product.category === category;
+    const matchesSearch = !search || `${product.title} ${product.category} ${product.description}`.toLowerCase().includes(search);
+    return matchesCategory && matchesSearch;
+  });
+  const page = Math.max(1, Number(options.page || 1));
+  const limit = Math.max(1, Number(options.limit || 10));
+  return {
+    products: filtered.slice((page - 1) * limit, page * limit),
+    total: filtered.length,
+    page,
+    limit,
+    categories: [...categoryTotals.entries()].map(([name, total]) => ({name, total})),
+  };
+}
+
+export async function getShopProduct(id: string): Promise<AdminShopProduct> {
+  try {
+    return await request<AdminShopProduct>(
+      `/admin/shop/products/${encodeURIComponent(id)}`,
+    );
+  } catch (detailError) {
+    // Older backend deployments have no single-product endpoint. Read the
+    // existing list API directly and locate the record until the backend is updated.
+    const firstResponse = await request<AdminShopProductsPage | AdminShopProduct[]>(
+      '/admin/shop/products?page=1&limit=100',
+    );
+    if (Array.isArray(firstResponse)) {
+      const product = firstResponse.find(item => item.id === id);
+      if (product) return product;
+      throw detailError;
+    }
+
+    const firstMatch = (firstResponse.products || []).find(item => item.id === id);
+    if (firstMatch) return firstMatch;
+    const totalPages = Math.ceil(
+      Number(firstResponse.total || 0) / Math.max(1, Number(firstResponse.limit || 100)),
+    );
+    for (let page = 2; page <= totalPages; page += 1) {
+      const response = await request<AdminShopProductsPage>(
+        `/admin/shop/products?page=${page}&limit=100`,
+      );
+      const product = (response.products || []).find(item => item.id === id);
+      if (product) return product;
+    }
+    throw detailError;
+  }
 }
 
 export function saveShopProduct(product: Partial<AdminShopProduct>) {
