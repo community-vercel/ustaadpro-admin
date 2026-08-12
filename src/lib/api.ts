@@ -306,8 +306,28 @@ export function deleteUser(id: number) {
   });
 }
 
-export function getPaymentReceipts() {
-  return request<AdminPaymentReceipt[]>('/admin/payment-receipts');
+export interface AdminPaymentReceiptsPage {
+  receipts: AdminPaymentReceipt[];
+  total: number;
+  hasMore: boolean;
+}
+
+export interface AdminPaymentReceiptDetails {
+  receipt: AdminPaymentReceipt;
+  receipts: AdminPaymentReceipt[];
+}
+
+export function getPaymentReceipts(params: {limit?: number; offset?: number; search?: string; orderId?: string} = {}) {
+  const query = new URLSearchParams();
+  query.set('limit', String(params.limit ?? 15));
+  query.set('offset', String(params.offset ?? 0));
+  if (params.search) query.set('search', params.search);
+  if (params.orderId) query.set('orderId', params.orderId);
+  return request<AdminPaymentReceiptsPage>('/admin/payment-receipts?' + query.toString());
+}
+
+export function getPaymentReceipt(id: number | string) {
+  return request<AdminPaymentReceiptDetails>('/admin/payment-receipts/' + id);
 }
 
 export function updatePaymentReceiptStatus(id: number, status: 'submitted' | 'verified' | 'rejected') {

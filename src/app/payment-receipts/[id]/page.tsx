@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {useParams} from 'next/navigation';
 import {ArrowLeft, ExternalLink, ReceiptText} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
-import {AdminPaymentReceipt, getPaymentReceipts, resolveAssetUrl} from '@/lib/api';
+import {AdminPaymentReceipt, getPaymentReceipt, resolveAssetUrl} from '@/lib/api';
 import {money} from '@/lib/adminUi';
 
 function formatDate(value?: string) {
@@ -28,11 +28,11 @@ export default function PaymentReceiptDetailsPage() {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    getPaymentReceipts()
-      .then(data => setReceipts(data))
+    getPaymentReceipt(params.id)
+      .then(data => setReceipts(data.receipts))
       .catch(() => setMessage('Could not load payment receipt details.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [params.id]);
 
   const receipt = useMemo(
     () => receipts.find(item => String(item.id) === String(params.id)),
