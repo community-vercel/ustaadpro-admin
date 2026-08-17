@@ -1,10 +1,10 @@
 'use client';
 
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import Link from 'next/link';
 import {RefreshCw} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
-import {AdminOrder, getOrders} from '@/lib/api';
+import {AdminOrder, getOrdersPage} from '@/lib/api';
 import {money, parseBookingSchedule} from '@/lib/adminUi';
 
 type FilterKey = 'all' | 'active' | 'completed' | 'cancelled';
@@ -16,35 +16,30 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [filter, setFilter] = useState<FilterKey>('all');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<15 | 20>(20);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(1);
+  const [counts, setCounts] = useState<Record<FilterKey, number>>({all: 0, active: 0, completed: 0, cancelled: 0});
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
-    const nextOrders = await getOrders();
-    setOrders(nextOrders);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadData().catch(() => {
+    setMessage('');
+    try {
+      const result = await getOrdersPage({page, limit: pageSize, filter});
+      setOrders(result.orders);
+      setTotal(result.total);
+      setPages(result.pages);
+      setCounts(result.counts);
+      if (page > result.pages) setPage(result.pages);
+    } catch {
       setMessage('Could not load orders. Check that the API is running.');
+    } finally {
       setLoading(false);
-    });
-  }, []);
+    }
+  }, [filter, page, pageSize]);
 
-  const counts = useMemo(() => ({
-    all: orders.length,
-    active: orders.filter(o => ACTIVE_STATUSES.includes(o.status)).length,
-    completed: orders.filter(o => o.status === 'completed').length,
-    cancelled: orders.filter(o => o.status === 'cancelled').length,
-  }), [orders]);
-
-  const filtered = useMemo(() => {
-    if (filter === 'active') return orders.filter(o => ACTIVE_STATUSES.includes(o.status));
-    if (filter === 'completed') return orders.filter(o => o.status === 'completed');
-    if (filter === 'cancelled') return orders.filter(o => o.status === 'cancelled');
-    return orders;
-  }, [orders, filter]);
-
+  useEffect(() => { void loadData(); }, [loadData]);
   const serviceSummary = (order: AdminOrder) =>
     order.items
       .map(item => item.serviceType || item.title || 'Standard Visit')
@@ -62,7 +57,7 @@ export default function OrdersPage() {
       eyebrow="Bookings"
       title="Orders"
       action={
-        <button className="ghostButton" onClick={() => loadData()}>
+        <button className="ghostButton" onClick={() => void loadData()} disabled={loading}>
           <RefreshCw size={17} />
           Refresh
         </button>
@@ -77,7 +72,7 @@ export default function OrdersPage() {
             key={key}
             className={`orderFilterPill${filter === key ? ' orderFilterPillActive' : ''}`}
             style={filter === key && accent ? {borderColor: accent, color: accent} : undefined}
-            onClick={() => setFilter(key)}
+            onClick={() => { setFilter(key); setPage(1); }}
           >
             <span className="orderFilterCount">{counts[key]}</span>
             {label}
@@ -91,16 +86,16 @@ export default function OrdersPage() {
             <p className="eyebrow">Live from mobile app</p>
             <h3>Bookings &amp; Customer Details</h3>
           </div>
-          <span className="countPill">{filtered.length} orders</span>
+          <span className="countPill">{total} orders</span>
         </div>
 
         {loading ? (
           <div className="empty">Loading orders...</div>
-        ) : filtered.length === 0 ? (
+        ) : orders.length === 0 ? (
           <div className="empty">No {filter === 'all' ? '' : filter} orders found.</div>
         ) : (
           <div className="ordersList">
-            {filtered.map(order => {
+            {orders.map(order => {
               const schedule = parseBookingSchedule(order.bookedFor);
 
               return (
@@ -177,6 +172,24 @@ export default function OrdersPage() {
             })}
           </div>
         )}
+        {!loading && total > 0 ? (
+          <div className="paginationBar">
+            <label>
+              Orders per page{' '}
+              <select value={pageSize} onChange={event => { setPageSize(Number(event.target.value) as 15 | 20); setPage(1); }}>
+                <option value={15}>15</option>
+                <option value={20}>20</option>
+              </select>
+            </label>
+            <div className="paginationActions">
+              <button className="ghostButton" disabled={page <= 1} onClick={() => setPage(1)}>First</button>
+              <button className="ghostButton" disabled={page <= 1} onClick={() => setPage(value => Math.max(1, value - 1))}>Previous</button>
+              <strong>Page {page} of {pages}</strong>
+              <button className="ghostButton" disabled={page >= pages} onClick={() => setPage(value => Math.min(pages, value + 1))}>Next</button>
+              <button className="ghostButton" disabled={page >= pages} onClick={() => setPage(pages)}>Last</button>
+            </div>
+          </div>
+        ) : null}
       </section>
     </AdminShell>
   );

@@ -288,8 +288,27 @@ export function getSummary() {
   return request<AdminSummary>('/admin/summary');
 }
 
-export function getOrders() {
-  return request<AdminOrder[]>('/admin/orders');
+export interface AdminOrdersPage {
+  orders: AdminOrder[];
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+  counts: {all: number; active: number; completed: number; cancelled: number};
+}
+
+export function getOrdersPage(params: {page?: number; limit?: 15 | 20; filter?: 'all' | 'active' | 'completed' | 'cancelled'} = {}) {
+  const query = new URLSearchParams({
+    page: String(params.page ?? 1),
+    limit: String(params.limit ?? 20),
+    filter: params.filter ?? 'all',
+  });
+  return request<AdminOrdersPage>('/admin/orders?' + query.toString());
+}
+
+export async function getOrders() {
+  const result = await getOrdersPage({page: 1, limit: 20, filter: 'all'});
+  return result.orders;
 }
 
 export function getOrder(id: string) {
