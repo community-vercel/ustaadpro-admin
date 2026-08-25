@@ -1,7 +1,17 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.ustaadpro.pk/api';
-const PUBLIC_API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
+export function getApiBaseUrl() {
+  if (process.env.NEXT_PUBLIC_API_BASE_URL) {
+    return process.env.NEXT_PUBLIC_API_BASE_URL;
+  }
+  if (typeof window !== 'undefined') {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:5000/api';
+    }
+  }
+  return 'https://api.ustaadpro.pk/api';
+}
 
+const API_BASE_URL = getApiBaseUrl();
+const PUBLIC_API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 export function resolveApiAssetUrl(url?: string) {
   if (!url) return '';
   const localUploadPath = url.match(
@@ -253,9 +263,7 @@ export interface BroadcastNotificationResult {
 
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  // Ensure we don't duplicate /api if API_BASE_URL already has it,
-  // and make sure the path starts with /api
-  const base = API_BASE_URL.replace(/\/api\/?$/, '');
+  const base = getApiBaseUrl().replace(/\/api\/?$/, '');
   const finalPath = path.startsWith('/api') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`;
 
   const response = await fetch(`${base}${finalPath}`, {
@@ -702,27 +710,12 @@ export interface BotConnectionStatus {
 }
 
 async function botRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  let base = 'https://api.ustaadpro.pk'; // DEFAULT for local development
+  const cleanPath = path.startsWith('/api') ? path.replace(/^\/api/, '') : path;
+  return request<T>(cleanPath, init);
+}
 
-  if (typeof window !== 'undefined') {
-    // Check if NOT running on localhost (i.e., production)
-    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      base = 'https://api.ustaadpro.pk'; // Production URL
-    }
-  }
-
-  const finalPath = path.startsWith('/api') ? path : `/api${path}`;
-
-  console.log('🔧 botRequest URL:', `${base}${finalPath}`);
-
-  const response = await fetch(`${base}${finalPath}`, {
-    ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
-    cache: 'no-store',
-  });
-
-  if (!response.ok) throw new Error(`Request failed: ${response.status}`);
-  return response.json();
+export function getBotBookingsTimeline() {
+  return request<{ date: string; count: number | string }[]>('/bot/bookings-timeline');
 }
 
 export function getBotConnectionStatus() {

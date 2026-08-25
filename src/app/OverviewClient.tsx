@@ -26,6 +26,7 @@ import {
   getShopOrders,
   getSummary,
   getBotStats,
+  getBotBookingsTimeline,
 } from '@/lib/api';
 import {
   PieChart,
@@ -83,19 +84,7 @@ function getNiceMax(max: number) {
   return Math.ceil(max / step) * step;
 }
 
-async function getBotBookingsTimelineLocal(): Promise<{date: string, count: number | string}[]> {
-  let base = 'http://localhost:5000';
-  if (typeof window !== 'undefined') {
-    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      base = 'https://api.ustaadpro.pk';
-    }
-  }
-  const response = await fetch(`${base}/api/bot/bookings-timeline`, {
-    cache: 'no-store',
-  });
-  if (!response.ok) throw new Error(`Request failed: ${response.status}`);
-  return response.json();
-}
+
 
 export function OverviewClient() {
   const [summary, setSummary] = useState<AdminSummary | null>(null);
@@ -262,7 +251,7 @@ export function OverviewClient() {
         getOrders(),
         getShopOrders(),
         getBotStats().catch(() => null),
-        getBotBookingsTimelineLocal().catch(() => []),
+        getBotBookingsTimeline().catch(() => []),
       ]);
       setSummary(nextSummary);
       setOrders(nextOrders);
