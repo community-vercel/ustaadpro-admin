@@ -45,6 +45,7 @@ const navItems: NavItem[] = [
   {href: '/app-control', label: 'App Control', Icon: Sliders},
   {href: '/resources', label: 'Our Resources', Icon: UserCheck},
   {href: '/users', label: 'Users', Icon: Users},
+  {href: '/providers', label: 'Provider Accounts', Icon: UserCheck},
   {href: '/complaints', label: 'Complaints', Icon: AlertCircle},
   {
     label: 'Settings',

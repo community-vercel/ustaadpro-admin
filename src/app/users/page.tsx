@@ -2,6 +2,7 @@
 
 import {useEffect, useState} from 'react';
 import {RefreshCw, Trash2} from 'lucide-react';
+import Link from 'next/link';
 import {AdminShell} from '@/components/AdminShell';
 import {AdminUser, deleteUser, getUsers} from '@/lib/api';
 import {money} from '@/lib/adminUi';
@@ -80,7 +81,11 @@ export default function UsersPage() {
                 <br />
                 {user.email}
               </span>
-              <span>{user.totalOrders}</span>
+              <span>
+                <Link className="orderCountLink" href={`/users/${user.id}/orders`} title={`View ${user.name}'s orders`}>
+                  {Number(user.totalOrders || 0)}
+                </Link>
+              </span>
               <span>{user.rewardPoints || 0}</span>
               <span>{money(user.totalSpend)}</span>
               <button

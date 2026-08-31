@@ -297,13 +297,13 @@ export function OverviewClient() {
       <section className="overviewHero">
         <div>
           <p className="eyebrow">Live Operations</p>
-          <h3>{money(metrics.totalRevenue || summary?.revenue || 0)}</h3>
-          <p>Combined service and shop revenue from all non-cancelled orders.</p>
+          <h3>{money(summary?.revenue || 0)}</h3>
+          <p>Revenue received from verified payments on non-cancelled orders.</p>
         </div>
         <div className="overviewHeroStats">
-          <MiniMetric label="Today" value={money(metrics.todayRevenue)} />
-          <MiniMetric label="Orders" value={metrics.allOrderCount} />
-          <MiniMetric label="Avg order" value={money(metrics.averageOrderValue)} />
+          <MiniMetric label="Verified today" value={money(summary?.todayVerifiedRevenue || 0)} />
+          <MiniMetric label="Paid orders" value={summary?.verifiedOrderCount || 0} />
+          <MiniMetric label="Avg payment" value={money(summary?.averageVerifiedOrder || 0)} />
         </div>
       </section>
 

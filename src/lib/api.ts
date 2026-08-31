@@ -20,6 +20,9 @@ export interface AdminSummary {
   totalCustomers: number;
   totalServices: number;
   revenue: number;
+  verifiedOrderCount: number;
+  todayVerifiedRevenue: number;
+  averageVerifiedOrder: number;
 }
 
 
@@ -47,6 +50,20 @@ export interface AdminUser {
   totalSpend: number;
 }
 
+export interface AdminUserOrderHistory {
+  user: Pick<AdminUser, 'id' | 'name' | 'phone' | 'email'>;
+  orders: Array<{
+    id: string;
+    type: 'service' | 'shop';
+    total: number;
+    status: string;
+    paymentMethod: string;
+    bookedFor?: string | null;
+    createdAt: string;
+    items: Array<{title: string; quantity: number; price: number; imageUrl?: string}>;
+  }>;
+}
+
 export interface AdminOrder {
   id: string;
   total: number;
@@ -67,6 +84,8 @@ export interface AdminOrder {
   customerName: string;
   customerPhone: string;
   customerEmail: string;
+  providerId?: number | null;
+  providerName?: string | null;
   items: Array<{
     serviceId: string;
     title: string;
@@ -82,6 +101,20 @@ export interface AdminOrder {
     quantity: number;
     price: number;
   }>;
+}
+
+export interface AdminProvider {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  trade: string;
+  commissionPercent: number;
+  isAvailable: boolean;
+  isActive: boolean;
+  rating: number;
+  completedJobs: number;
+  createdAt?: string;
 }
 
 export interface AdminPaymentReceipt {
@@ -274,11 +307,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function resolveAssetUrl(url?: string) {
   if (!url) return '';
-  const localUploadPath = url.match(
-    /^https?:\/\/(?:127\.0\.0\.1|localhost):\d+(\/uploads\/.+)$/i,
+  const apiUploadPath = url.match(
+    /^https?:\/\/(?:127\.0\.0\.1|localhost|api\.ustaadpro\.pk)(?::\d+)?(\/uploads\/.+)$/i,
   )?.[1];
-  if (localUploadPath) {
-    return `${PUBLIC_API_ORIGIN}${localUploadPath}`;
+  if (apiUploadPath) {
+    return `${PUBLIC_API_ORIGIN}${apiUploadPath}`;
   }
   if (url.startsWith('http') || url.startsWith('data:')) return url;
   return `${PUBLIC_API_ORIGIN}${url}`;
@@ -317,6 +350,10 @@ export function getOrder(id: string) {
 
 export function getUsers() {
   return request<AdminUser[]>('/admin/users');
+}
+
+export function getUserOrders(id: number | string) {
+  return request<AdminUserOrderHistory>(`/admin/users/${id}/orders`);
 }
 
 export function deleteUser(id: number) {
@@ -442,6 +479,28 @@ export function updateOrderStatus(
   return request(`/admin/orders/${id}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status, cancelReason }),
+  });
+}
+
+export function getProviders() {
+  return request<AdminProvider[]>('/admin/providers');
+}
+
+export function saveProvider(provider: Partial<AdminProvider> & {password?: string}) {
+  return request<AdminProvider>(provider.id ? `/admin/providers/${provider.id}` : '/admin/providers', {
+    method: provider.id ? 'PUT' : 'POST',
+    body: JSON.stringify(provider),
+  });
+}
+
+export function deleteProvider(id: string) {
+  return request(`/admin/providers/${id}`, {method: 'DELETE'});
+}
+
+export function assignOrderProvider(orderId: string, providerId: string) {
+  return request(`/admin/orders/${orderId}/provider`, {
+    method: 'PATCH',
+    body: JSON.stringify({providerId: Number(providerId)}),
   });
 }
 
@@ -752,4 +811,3 @@ export async function updateComplaintStatus(id: number, status: string) {
     body: JSON.stringify({ status }),
   });
 }
-

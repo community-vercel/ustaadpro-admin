@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {useParams} from 'next/navigation';
 import {ArrowLeft, RefreshCw} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
-import {AdminOrder, getOrder, updateOrderStatus, resolveAssetUrl} from '@/lib/api';
+import {AdminOrder, AdminProvider, assignOrderProvider, getOrder, getProviders, updateOrderStatus, resolveAssetUrl} from '@/lib/api';
 import {money, parseBookingSchedule} from '@/lib/adminUi';
 
 export default function OrderDetailPage() {
@@ -14,11 +14,16 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<AdminOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [providers, setProviders] = useState<AdminProvider[]>([]);
+  const [selectedProviderId, setSelectedProviderId] = useState('');
+  const [assigning, setAssigning] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
-    const nextOrder = await getOrder(orderId);
+    const [nextOrder, nextProviders] = await Promise.all([getOrder(orderId), getProviders()]);
     setOrder(nextOrder);
+    setProviders(nextProviders.filter(provider => provider.isActive));
+    setSelectedProviderId(nextOrder.providerId ? String(nextOrder.providerId) : '');
     setLoading(false);
   };
 
@@ -34,6 +39,11 @@ export default function OrderDetailPage() {
   const handleStatus = async (status: AdminOrder['status']) => {
     if (!order) return;
 
+    if (status === 'assigned' && !order.providerId) {
+      setMessage('Select and assign a provider first.');
+      return;
+    }
+
     let cancelReason: string | null = null;
     if (status === 'cancelled') {
       const reason = prompt('Please enter a cancellation reason:');
@@ -47,6 +57,18 @@ export default function OrderDetailPage() {
     await updateOrderStatus(order.id, status, cancelReason);
     await loadData();
     setMessage(`Order ${order.id} updated.`);
+  };
+
+  const handleAssignment = async () => {
+    if (!selectedProviderId) { setMessage('Select a provider first.'); return; }
+    setAssigning(true);
+    try {
+      await assignOrderProvider(orderId, selectedProviderId);
+      await loadData();
+      setMessage('Provider assigned and order moved to Assigned.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not assign provider.');
+    } finally { setAssigning(false); }
   };
 
   const schedule = order ? parseBookingSchedule(order.bookedFor) : null;
@@ -100,7 +122,7 @@ export default function OrderDetailPage() {
             >
               <option value="checking_receipt">Checking receipt</option>
               <option value="confirmed">Confirmed</option>
-              <option value="assigned">Assigned</option>
+              <option value="assigned" disabled={!order.providerId}>Assigned</option>
               <option value="in_progress">In Progress</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
@@ -129,6 +151,24 @@ export default function OrderDetailPage() {
                 value={`${schedule.occurrences} days`}
               />
             )}
+          </div>
+
+          <div className="detailBlockWide">
+            <span>Assigned Provider</span>
+            <div className="providerAssignmentRow">
+              <select value={selectedProviderId} onChange={event => setSelectedProviderId(event.target.value)}>
+                <option value="">Select provider...</option>
+                {providers.map(provider => (
+                  <option key={provider.id} value={provider.id} disabled={!provider.isAvailable}>
+                    {provider.name} — {provider.trade}{provider.isAvailable ? '' : ' (Unavailable)'}
+                  </option>
+                ))}
+              </select>
+              <button className="primaryButton" disabled={assigning || !selectedProviderId} onClick={() => void handleAssignment()}>
+                {assigning ? 'Assigning...' : order.providerId ? 'Reassign Provider' : 'Assign Provider'}
+              </button>
+            </div>
+            {order.providerName && <small>Currently assigned to {order.providerName}</small>}
           </div>
 
           <div className="detailBlockWide">
