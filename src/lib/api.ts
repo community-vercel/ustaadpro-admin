@@ -674,6 +674,12 @@ export function bulkDeleteShopProducts(ids: string[]) {
   });
 }
 
+export function deleteAllShopProducts() {
+  return request<{message: string; deleted: number}>('/admin/shop/products', {
+    method: 'DELETE',
+  });
+}
+
 export function getShopOrders() {
   return request<AdminShopOrder[]>('/admin/shop/orders');
 }

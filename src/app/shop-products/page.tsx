@@ -4,7 +4,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import Link from 'next/link';
 import {Download, Edit2, Eye, PackagePlus, RefreshCw, Search, Trash2, Upload} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
-import {AdminShopProduct, ShopImportResult, bulkDeleteShopProducts, deleteShopProduct, getShopProducts, importShopProducts, resolveAssetUrl} from '@/lib/api';
+import {AdminShopProduct, ShopImportResult, bulkDeleteShopProducts, deleteAllShopProducts, deleteShopProduct, getShopProducts, importShopProducts, resolveAssetUrl} from '@/lib/api';
 import {money} from '@/lib/adminUi';
 
 const PAGE_SIZE = 10;
@@ -135,6 +135,23 @@ export default function ShopProductsPage() {
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (!confirm(`⚠️ Delete ALL ${total} shop products? This will remove every product from the database and cannot be undone.`)) return;
+    const confirmation = prompt('Are you absolutely sure? Type "DELETE ALL" to confirm.');
+    if (confirmation !== 'DELETE ALL') return;
+    setDeleting(true);
+    try {
+      const data = await deleteAllShopProducts();
+      setMessage(data.message || 'All products deleted.');
+      setSelected(new Set());
+      void load();
+    } catch {
+      setMessage('Could not delete all products.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const first = total ? (page - 1) * PAGE_SIZE + 1 : 0;
   const last = Math.min(page * PAGE_SIZE, total);
@@ -173,11 +190,18 @@ export default function ShopProductsPage() {
       )}
       <section className="panel">
         <div className="productListToolbar">
-          <label className="productSearch"><Search size={17}/><input value={search} onChange={e => {setSearch(e.target.value); setPage(1);}} placeholder="Search products..."/></label>
-          <select value={category} onChange={e => {setCategory(e.target.value); setPage(1);}}>
-            <option>All</option>
-            {categories.map(item => <option key={item.name}>{item.name}</option>)}
-          </select>
+          <div style={{display:'flex', gap:10, alignItems:'center'}}>
+            <label className="productSearch"><Search size={17}/><input value={search} onChange={e => {setSearch(e.target.value); setPage(1);}} placeholder="Search products..."/></label>
+            <select value={category} onChange={e => {setCategory(e.target.value); setPage(1);}}>
+              <option>All</option>
+              {categories.map(item => <option key={item.name}>{item.name}</option>)}
+            </select>
+          </div>
+          {total > 0 && (
+            <button className="dangerButton" onClick={handleDeleteAll} disabled={deleting || loading} style={{marginLeft: 'auto'}}>
+              <Trash2 size={15}/>Delete All Products
+            </button>
+          )}
         </div>
         {selected.size > 0 && (
           <div style={{display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid #e5e7eb', marginBottom:4}}>
