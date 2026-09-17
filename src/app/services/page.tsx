@@ -162,6 +162,7 @@ export default function ServicesPage() {
       await saveService({
         ...editingService,
         price: minPrice,
+        allowQuantity: editingService.allowQuantity !== false,
         includes: compactList(editingService.includes),
         excludes: compactList(editingService.excludes),
         details: compactList(editingService.details),
@@ -393,7 +394,12 @@ export default function ServicesPage() {
               <Field label="Minimum Price (PKR)" type="number" value={String(editingService.price || '')} onChange={v => setEditingService({ ...editingService, price: Number(v) })} />
               <Field label="Original Price (PKR)" type="number" value={String(editingService.originalPrice || '')} onChange={v => setEditingService({ ...editingService, originalPrice: Number(v) })} />
               
-              <div className="field fieldWide workPriceEditor">
+              <label className="field" style={{flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, cursor: 'pointer'}}>
+                <input type="checkbox" checked={editingService.allowQuantity !== false} onChange={e => setEditingService({ ...editingService, allowQuantity: e.target.checked })} style={{width: 18, height: 18}} />
+                <span style={{fontWeight: 600}}>Allow Multiple Quantity (+/-) in App</span>
+              </label>
+
+              <div className="field fieldWide workPriceEditor" style={{marginTop: 10}}>
                 <div className="workPriceHeader">
                   <span>Specific Work / Dynamic Prices</span>
                   <button type="button" className="ghostButton" onClick={() => setEditingService(c => ({...c, workPrices: [...(c?.workPrices || []), {...blankWorkPrice, sortOrder: c?.workPrices?.length || 0}]}))}><Plus size={15} />Add Work</button>

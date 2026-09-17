@@ -167,6 +167,7 @@ export interface AdminService {
   includes: string[];
   excludes: string[];
   workPrices?: AdminServiceWorkPrice[];
+  allowQuantity?: boolean;
 }
 
 export interface AdminHomeSlide {
