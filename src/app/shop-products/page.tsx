@@ -9,23 +9,25 @@ import {money} from '@/lib/adminUi';
 
 const PAGE_SIZE = 10;
 
-function downloadTemplate() {
-  // Build a tab-separated CSV-like data and convert to a simple Excel file
-  const headers = ['ID', 'Title', 'Category', 'Brand', 'Description', 'Price', 'Original Price', 'Stock', 'Active', 'Image URL', 'Image'];
-  const example = ['', 'Paint Roller Pro', 'Painting', 'Berger', 'High quality paint roller for smooth finish', '350', '450', '100', 'Yes', '', '← Paste actual product image here'];
-  
-  // Generate a minimal XLSX using base64
-  // We'll create a proper CSV that Excel can open, but name it .xlsx isn't ideal
-  // Instead, create a proper xlsx via the server template endpoint
-  const rows = [headers, example];
-  const csvContent = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-  const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'shop-products-template.csv';
-  a.click();
-  URL.revokeObjectURL(url);
+async function downloadTemplate() {
+  try {
+    const base = API_BASE_URL.replace(/\/api\/?$/, '');
+    const token = localStorage.getItem('adminToken') || '';
+    const res = await fetch(`${base}/api/admin/shop/products-export/template`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Failed to download template');
+    
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'shop-products-import-template.xlsx';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert(err instanceof Error ? err.message : 'Download failed');
+  }
 }
 
 export default function ShopProductsPage() {
