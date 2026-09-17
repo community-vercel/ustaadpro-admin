@@ -54,16 +54,21 @@ export default function ShopProductsPage() {
     setMessage('');
     try {
       const token = localStorage.getItem('adminToken') || '';
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-      const url = new URL(`${baseUrl}/api/admin/shop/products-export/excel`);
-      if (search) url.searchParams.set('search', search);
-      if (category) url.searchParams.set('category', category);
-      
-      const res = await fetch(url.toString(), {
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
+      let endpoint = `${baseUrl}/api/admin/shop/products-export/excel`;
+      const params: string[] = [];
+      if (search) params.push(`search=${encodeURIComponent(search)}`);
+      if (category && category !== 'All') params.push(`category=${encodeURIComponent(category)}`);
+      if (params.length) endpoint += '?' + params.join('&');
+
+      const res = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (!res.ok) throw new Error('Export failed');
-      
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `Server returned ${res.status}`);
+      }
+
       const blob = await res.blob();
       const downloadUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -71,8 +76,8 @@ export default function ShopProductsPage() {
       a.download = `ustaadpro-shop-products-${new Date().toISOString().slice(0, 10)}.xlsx`;
       a.click();
       URL.revokeObjectURL(downloadUrl);
-    } catch {
-      setMessage('Could not export products.');
+    } catch (err) {
+      setMessage(`Export failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setExporting(false);
     }
