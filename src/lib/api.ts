@@ -661,6 +661,25 @@ export function importShopProducts(csvText: string) {
   });
 }
 
+export async function importShopProductsExcel(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const token = localStorage.getItem('adminToken') || '';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  const res = await fetch(`${baseUrl}/api/admin/shop/products/import-excel`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || 'Import failed');
+  }
+  return await res.json() as ShopImportResult;
+}
+
 export function deleteShopProduct(id: string) {
   return request<{message: string}>(`/admin/shop/products/${encodeURIComponent(id)}`, {
     method: 'DELETE',

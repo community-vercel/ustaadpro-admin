@@ -4,34 +4,10 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import Link from 'next/link';
 import {Download, Edit2, Eye, PackagePlus, RefreshCw, Search, Trash2, Upload} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
-import {AdminShopProduct, ShopImportResult, bulkDeleteShopProducts, deleteAllShopProducts, deleteShopProduct, getShopProducts, importShopProducts, resolveAssetUrl} from '@/lib/api';
+import {AdminShopProduct, ShopImportResult, bulkDeleteShopProducts, deleteAllShopProducts, deleteShopProduct, getShopProducts, importShopProductsExcel, resolveAssetUrl} from '@/lib/api';
 import {money} from '@/lib/adminUi';
 
 const PAGE_SIZE = 10;
-
-function escapeCsvField(value: string | number | boolean | undefined | null): string {
-  const str = value == null ? '' : String(value);
-  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
-}
-
-function downloadCsv(products: AdminShopProduct[]) {
-  const headers = ['ID', 'Title', 'Category', 'Brand', 'Description', 'Price (PKR)', 'Original Price (PKR)', 'Stock', 'Active', 'Image URL'];
-  const rows = products.map(p =>
-    [p.id, p.title, p.category, p.brand || '', p.description, p.price, p.originalPrice, p.stock, p.isActive ? 'Yes' : 'No', p.imageUrl || '']
-      .map(escapeCsvField).join(','),
-  );
-  const csv = [headers.join(','), ...rows].join('\n');
-  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `ustaadpro-shop-products-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 export default function ShopProductsPage() {
   const [products, setProducts] = useState<AdminShopProduct[]>([]);
@@ -73,12 +49,28 @@ export default function ShopProductsPage() {
     return () => clearTimeout(timer);
   }, [load, search]);
 
-  const handleExportCsv = async () => {
+  const handleExportExcel = async () => {
     setExporting(true);
     setMessage('');
     try {
-      const data = await getShopProducts({limit: 9999, search, category});
-      downloadCsv(data.products || []);
+      const token = localStorage.getItem('adminToken') || '';
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      const url = new URL(`${baseUrl}/api/admin/shop/products-export/excel`);
+      if (search) url.searchParams.set('search', search);
+      if (category) url.searchParams.set('category', category);
+      
+      const res = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Export failed');
+      
+      const blob = await res.blob();
+      const downloadUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `ustaadpro-shop-products-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(downloadUrl);
     } catch {
       setMessage('Could not export products.');
     } finally {
@@ -86,7 +78,7 @@ export default function ShopProductsPage() {
     }
   };
 
-  const handleImportCsvFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportExcelFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
@@ -94,8 +86,7 @@ export default function ShopProductsPage() {
     setMessage('');
     setImportResult(null);
     try {
-      const csvText = await file.text();
-      const result = await importShopProducts(csvText);
+      const result = await importShopProductsExcel(file);
       setImportResult(result);
       void load();
     } catch (err) {
@@ -162,15 +153,15 @@ export default function ShopProductsPage() {
         <input
           ref={importInputRef}
           type="file"
-          accept=".csv,text/csv"
+          accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           style={{display: 'none'}}
-          onChange={handleImportCsvFile}
+          onChange={handleImportExcelFile}
         />
         <button className="ghostButton" onClick={() => importInputRef.current?.click()} disabled={importing}>
-          <Upload size={17}/>{importing ? 'Importing...' : 'Import CSV'}
+          <Upload size={17}/>{importing ? 'Importing...' : 'Import Excel'}
         </button>
-        <button className="ghostButton" onClick={handleExportCsv} disabled={exporting}>
-          <Download size={17}/>{exporting ? 'Exporting...' : 'Export CSV'}
+        <button className="ghostButton" onClick={handleExportExcel} disabled={exporting}>
+          <Download size={17}/>{exporting ? 'Exporting...' : 'Export Excel'}
         </button>
         <button className="ghostButton" onClick={() => void load()}><RefreshCw size={17}/>Refresh</button>
         <Link className="primaryButton" href="/shop-products/new"><PackagePlus size={17}/>Add Product</Link>
