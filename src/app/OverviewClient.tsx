@@ -22,6 +22,7 @@ import {
   AdminShopOrder,
   AdminSummary,
   BotStat,
+  cleanDatabase,
   getOrders,
   getShopOrders,
   getSummary,
@@ -105,6 +106,7 @@ export function OverviewClient() {
   const [botBookingsTimeline, setBotBookingsTimeline] = useState<{date: string, count: number | string}[]>([]);
   const [message, setMessage] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
 
   const metrics = useMemo(() => {
     const serviceRevenue = orders
@@ -286,10 +288,29 @@ export function OverviewClient() {
       eyebrow="Operations Console"
       title="Overview"
       action={
+        <div style={{display:'flex',gap:8}}>
         <button className="ghostButton" disabled={isRefreshing} onClick={() => loadData()}>
           <RefreshCw size={17} />
           {isRefreshing ? 'Refreshing...' : 'Refresh'}
         </button>
+        <button className="ghostButton" disabled={cleaning} onClick={async()=>{
+          if(!confirm('⚠️ This will DELETE all users, orders, receipts, shop orders, and OTPs from the PRODUCTION database. This cannot be undone. Type OK to confirm.')) return;
+          const secret = prompt('Enter clean database secret:');
+          if(!secret) return;
+          setCleaning(true);
+          try {
+            const result = await cleanDatabase(secret);
+            setMessage(`✅ Database cleaned: ${result.totalRemoved} rows removed.`);
+            loadData();
+          } catch(e:any) {
+            setMessage(`❌ Clean failed: ${e.message}`);
+          } finally {
+            setCleaning(false);
+          }
+        }}>
+          🧹 {cleaning ? 'Cleaning...' : 'Clean DB'}
+        </button>
+        </div>
       }
     >
       {message && <div className="notice">{message}</div>}

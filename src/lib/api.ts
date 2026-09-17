@@ -240,6 +240,7 @@ export interface AdminShopProduct {
   id: string;
   title: string;
   category: string;
+  brand?: string;
   description: string;
   price: number;
   originalPrice: number;
@@ -319,6 +320,19 @@ export function resolveAssetUrl(url?: string) {
 
 export function getSummary() {
   return request<AdminSummary>('/admin/summary');
+}
+
+export interface CleanResult {
+  message: string;
+  totalRemoved: number;
+  results: Array<{table: string; removed?: number; status: string; message?: string}>;
+}
+
+export function cleanDatabase(secret: string) {
+  return request<CleanResult>('/admin/clean-database', {
+    method: 'POST',
+    body: JSON.stringify({secret}),
+  });
 }
 
 export interface AdminOrdersPage {
@@ -631,6 +645,20 @@ export function saveShopProduct(product: Partial<AdminShopProduct>) {
       body: JSON.stringify(product),
     },
   );
+}
+
+export interface ShopImportResult {
+  message: string;
+  saved: number;
+  skipped: number;
+  errors: string[];
+}
+
+export function importShopProducts(csvText: string) {
+  return request<ShopImportResult>('/admin/shop/products/import-csv', {
+    method: 'POST',
+    body: JSON.stringify({csvText}),
+  });
 }
 
 export function getShopOrders() {

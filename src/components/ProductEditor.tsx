@@ -8,7 +8,7 @@ import {Field, ImagePickerField} from '@/components/AdminFields';
 import {AdminShopProduct, getShopProduct, resolveAssetUrl, saveShopProduct} from '@/lib/api';
 import {money} from '@/lib/adminUi';
 
-const emptyProduct: Partial<AdminShopProduct> = {title: '', category: 'Home Care', description: '', price: 0, originalPrice: 0, imageUrl: '', stock: 10, isActive: true};
+const emptyProduct: Partial<AdminShopProduct> = {title: '', category: 'Home Care', brand: '', description: '', price: 0, originalPrice: 0, imageUrl: '', stock: 10, isActive: true};
 
 export function ProductEditor({productId}: {productId?: string}) {
   const router = useRouter();
@@ -41,6 +41,7 @@ export function ProductEditor({productId}: {productId?: string}) {
         <div className="formGrid">
           <Field label="Title" value={form.title || ''} onChange={title => setForm({...form, title})}/>
           <Field label="Category" value={form.category || ''} onChange={category => setForm({...form, category})}/>
+          <Field label="Brand (Optional)" value={form.brand || ''} onChange={brand => setForm({...form, brand})}/>
           <ImagePickerField label="Product Image" value={form.imageUrl} onChange={imageUrl => setForm({...form, imageUrl})}/>
           <Field label="Price (PKR)" type="number" value={String(form.price ?? '')} onChange={price => setForm({...form, price: Number(price)})}/>
           <Field label="Original Price (PKR)" type="number" value={String(form.originalPrice ?? '')} onChange={originalPrice => setForm({...form, originalPrice: Number(originalPrice)})}/>

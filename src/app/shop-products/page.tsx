@@ -1,24 +1,177 @@
 'use client';
 
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import Link from 'next/link';
-import {Edit2, Eye, PackagePlus, RefreshCw, Search} from 'lucide-react';
+import {Download, Edit2, Eye, PackagePlus, RefreshCw, Search, Upload} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
-import {AdminShopProduct, getShopProducts, resolveAssetUrl} from '@/lib/api';
+import {AdminShopProduct, ShopImportResult, getShopProducts, importShopProducts, resolveAssetUrl} from '@/lib/api';
 import {money} from '@/lib/adminUi';
 
 const PAGE_SIZE = 10;
-export default function ShopProductsPage(){
- const [products,setProducts]=useState<AdminShopProduct[]>([]); const [total,setTotal]=useState(0); const [page,setPage]=useState(1); const [search,setSearch]=useState(''); const [category,setCategory]=useState('All'); const [categories,setCategories]=useState<Array<{name:string;total:number}>>([]); const [loading,setLoading]=useState(true); const [message,setMessage]=useState('');
- const load=useCallback(async()=>{setLoading(true);setMessage('');try{const data=await getShopProducts({page,limit:PAGE_SIZE,search,category});setProducts(data.products || []);setTotal(Number(data.total || 0));setCategories(data.categories || []);}catch{setMessage('Could not load shop products.')}finally{setLoading(false)}},[page,search,category]);
- useEffect(()=>{const timer=setTimeout(()=>void load(),search?300:0);return()=>clearTimeout(timer)},[load,search]);
- const pages=Math.max(1,Math.ceil(total/PAGE_SIZE)); const first=total?(page-1)*PAGE_SIZE+1:0; const last=Math.min(page*PAGE_SIZE,total);
- return <AdminShell eyebrow="Store catalog" title="Shop Products" action={<div className="pageActions"><button className="ghostButton" onClick={()=>void load()}><RefreshCw size={17}/>Refresh</button><Link className="primaryButton" href="/shop-products/new"><PackagePlus size={17}/>Add Product</Link></div>}>
-  {message&&<div className="notice">{message}</div>}
-  <section className="panel">
-   <div className="productListToolbar"><label className="productSearch"><Search size={17}/><input value={search} onChange={e=>{setSearch(e.target.value);setPage(1)}} placeholder="Search products..."/></label><select value={category} onChange={e=>{setCategory(e.target.value);setPage(1)}}><option>All</option>{categories.map(item=><option key={item.name}>{item.name}</option>)}</select></div>
-   <div className="adminTableWrap"><table className="productTable"><thead><tr><th>Product</th><th>Category</th><th>Stock</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead><tbody>{products.map(product=><tr key={product.id}><td><div className="productTableIdentity">{product.imageUrl?<img src={resolveAssetUrl(product.imageUrl)} alt=""/>:<div className="productThumbFallback">P</div>}<div><strong>{product.title}</strong><small>{product.id}</small></div></div></td><td>{product.category}</td><td><span className={product.stock>0?'stockOk':'stockOut'}>{product.stock>0?product.stock:'Out of stock'}</span></td><td><strong>{money(product.price)}</strong>{product.originalPrice>product.price&&<small className="tableSubtext">{money(product.originalPrice)}</small>}</td><td><span className={product.isActive?'productStatus active':'productStatus inactive'}>{product.isActive?'Active':'Inactive'}</span></td><td><div className="rowActions"><Link title="View details" href={`/shop-products/${encodeURIComponent(product.id)}`}><Eye size={17}/></Link><Link title="Edit product" href={`/shop-products/${encodeURIComponent(product.id)}/edit`}><Edit2 size={17}/></Link></div></td></tr>)}</tbody></table>{!loading&&!products.length&&<div className="empty">No products found.</div>}{loading&&<div className="empty">Loading products...</div>}</div>
-   <div className="paginationBar"><span>Showing {first}-{last} of {total}</span><div className="paginationActions"><button className="ghostButton" disabled={page<=1} onClick={()=>setPage(v=>v-1)}>Previous</button><strong>Page {page} of {pages}</strong><button className="ghostButton" disabled={page>=pages} onClick={()=>setPage(v=>v+1)}>Next</button></div></div>
-  </section>
- </AdminShell>
+
+function escapeCsvField(value: string | number | boolean | undefined | null): string {
+  const str = value == null ? '' : String(value);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+function downloadCsv(products: AdminShopProduct[]) {
+  const headers = ['ID', 'Title', 'Category', 'Brand', 'Description', 'Price (PKR)', 'Original Price (PKR)', 'Stock', 'Active'];
+  const rows = products.map(p =>
+    [p.id, p.title, p.category, p.brand || '', p.description, p.price, p.originalPrice, p.stock, p.isActive ? 'Yes' : 'No']
+      .map(escapeCsvField).join(','),
+  );
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ustaadpro-shop-products-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export default function ShopProductsPage() {
+  const [products, setProducts] = useState<AdminShopProduct[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('All');
+  const [categories, setCategories] = useState<Array<{name: string; total: number}>>([]);
+  const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<ShopImportResult | null>(null);
+  const [message, setMessage] = useState('');
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setMessage('');
+    try {
+      const data = await getShopProducts({page, limit: PAGE_SIZE, search, category});
+      setProducts(data.products || []);
+      setTotal(Number(data.total || 0));
+      setCategories(data.categories || []);
+    } catch {
+      setMessage('Could not load shop products.');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search, category]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => void load(), search ? 300 : 0);
+    return () => clearTimeout(timer);
+  }, [load, search]);
+
+  const handleExportCsv = async () => {
+    setExporting(true);
+    setMessage('');
+    try {
+      const data = await getShopProducts({limit: 9999, search, category});
+      downloadCsv(data.products || []);
+    } catch {
+      setMessage('Could not export products.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImportCsvFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setImporting(true);
+    setMessage('');
+    setImportResult(null);
+    try {
+      const csvText = await file.text();
+      const result = await importShopProducts(csvText);
+      setImportResult(result);
+      void load();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Import failed.');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const first = total ? (page - 1) * PAGE_SIZE + 1 : 0;
+  const last = Math.min(page * PAGE_SIZE, total);
+
+  return (
+    <AdminShell eyebrow="Store catalog" title="Shop Products" action={
+      <div className="pageActions">
+        <input
+          ref={importInputRef}
+          type="file"
+          accept=".csv,text/csv"
+          style={{display: 'none'}}
+          onChange={handleImportCsvFile}
+        />
+        <button className="ghostButton" onClick={() => importInputRef.current?.click()} disabled={importing}>
+          <Upload size={17}/>{importing ? 'Importing...' : 'Import CSV'}
+        </button>
+        <button className="ghostButton" onClick={handleExportCsv} disabled={exporting}>
+          <Download size={17}/>{exporting ? 'Exporting...' : 'Export CSV'}
+        </button>
+        <button className="ghostButton" onClick={() => void load()}><RefreshCw size={17}/>Refresh</button>
+        <Link className="primaryButton" href="/shop-products/new"><PackagePlus size={17}/>Add Product</Link>
+      </div>
+    }>
+      {message && <div className="notice">{message}</div>}
+      {importResult && (
+        <div className={importResult.errors.length ? 'notice' : 'noticeSuccess'} style={{marginBottom: 12}}>
+          <strong>{importResult.message}</strong>
+          {importResult.errors.length > 0 && (
+            <ul style={{marginTop: 6, paddingLeft: 18}}>
+              {importResult.errors.map((e, i) => <li key={i} style={{fontSize: 12}}>{e}</li>)}
+            </ul>
+          )}
+          <button style={{marginTop: 6, fontSize: 12, cursor: 'pointer', background: 'none', border: 'none', textDecoration: 'underline'}} onClick={() => setImportResult(null)}>Dismiss</button>
+        </div>
+      )}
+      <section className="panel">
+        <div className="productListToolbar">
+          <label className="productSearch"><Search size={17}/><input value={search} onChange={e => {setSearch(e.target.value); setPage(1);}} placeholder="Search products..."/></label>
+          <select value={category} onChange={e => {setCategory(e.target.value); setPage(1);}}>
+            <option>All</option>
+            {categories.map(item => <option key={item.name}>{item.name}</option>)}
+          </select>
+        </div>
+        <div className="adminTableWrap">
+          <table className="productTable">
+            <thead><tr><th>Product</th><th>Category</th><th>Brand</th><th>Stock</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              {products.map(product => (
+                <tr key={product.id}>
+                  <td><div className="productTableIdentity">{product.imageUrl ? <img src={resolveAssetUrl(product.imageUrl)} alt=""/> : <div className="productThumbFallback">P</div>}<div><strong>{product.title}</strong><small>{product.id}</small></div></div></td>
+                  <td>{product.category}</td>
+                  <td>{product.brand || <span style={{color:'#aaa',fontStyle:'italic'}}>—</span>}</td>
+                  <td><span className={product.stock > 0 ? 'stockOk' : 'stockOut'}>{product.stock > 0 ? product.stock : 'Out of stock'}</span></td>
+                  <td><strong>{money(product.price)}</strong>{product.originalPrice > product.price && <small className="tableSubtext">{money(product.originalPrice)}</small>}</td>
+                  <td><span className={product.isActive ? 'productStatus active' : 'productStatus inactive'}>{product.isActive ? 'Active' : 'Inactive'}</span></td>
+                  <td><div className="rowActions"><Link title="View details" href={`/shop-products/${encodeURIComponent(product.id)}`}><Eye size={17}/></Link><Link title="Edit product" href={`/shop-products/${encodeURIComponent(product.id)}/edit`}><Edit2 size={17}/></Link></div></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!loading && !products.length && <div className="empty">No products found.</div>}
+          {loading && <div className="empty">Loading products...</div>}
+        </div>
+        <div className="paginationBar">
+          <span>Showing {first}–{last} of {total}</span>
+          <div className="paginationActions">
+            <button className="ghostButton" disabled={page <= 1} onClick={() => setPage(v => v - 1)}>Previous</button>
+            <strong>Page {page} of {pages}</strong>
+            <button className="ghostButton" disabled={page >= pages} onClick={() => setPage(v => v + 1)}>Next</button>
+          </div>
+        </div>
+      </section>
+    </AdminShell>
+  );
 }
