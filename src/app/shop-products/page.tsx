@@ -4,7 +4,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import Link from 'next/link';
 import {Download, Edit2, Eye, PackagePlus, RefreshCw, Search, Trash2, Upload} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
-import {AdminShopProduct, ShopImportResult, bulkDeleteShopProducts, deleteAllShopProducts, deleteShopProduct, getShopProducts, importShopProductsExcel, resolveAssetUrl} from '@/lib/api';
+import {AdminShopProduct, ShopImportResult, API_BASE_URL, bulkDeleteShopProducts, deleteAllShopProducts, deleteShopProduct, getShopProducts, importShopProductsExcel, resolveAssetUrl} from '@/lib/api';
 import {money} from '@/lib/adminUi';
 
 const PAGE_SIZE = 10;
@@ -53,9 +53,9 @@ export default function ShopProductsPage() {
     setExporting(true);
     setMessage('');
     try {
+      const base = API_BASE_URL.replace(/\/api\/?$/, '');
       const token = localStorage.getItem('adminToken') || '';
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
-      let endpoint = `${baseUrl}/api/admin/shop/products-export/excel`;
+      let endpoint = `${base}/api/admin/shop/products-export/excel`;
       const params: string[] = [];
       if (search) params.push(`search=${encodeURIComponent(search)}`);
       if (category && category !== 'All') params.push(`category=${encodeURIComponent(category)}`);

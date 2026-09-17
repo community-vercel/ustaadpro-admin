@@ -1,4 +1,4 @@
-const API_BASE_URL =
+export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.ustaadpro.pk/api';
 const PUBLIC_API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 
@@ -664,15 +664,15 @@ export function importShopProducts(csvText: string) {
 export async function importShopProductsExcel(file: File) {
   const formData = new FormData();
   formData.append('file', file);
-  
+
   const token = localStorage.getItem('adminToken') || '';
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-  const res = await fetch(`${baseUrl}/api/admin/shop/products/import-excel`, {
+  const base = API_BASE_URL.replace(/\/api\/?$/, '');
+  const res = await fetch(`${base}/api/admin/shop/products/import-excel`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
   });
-  
+
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
     throw new Error(error.message || 'Import failed');
