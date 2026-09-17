@@ -9,6 +9,25 @@ import {money} from '@/lib/adminUi';
 
 const PAGE_SIZE = 10;
 
+function downloadTemplate() {
+  // Build a tab-separated CSV-like data and convert to a simple Excel file
+  const headers = ['ID', 'Title', 'Category', 'Brand', 'Description', 'Price', 'Original Price', 'Stock', 'Active', 'Image URL', 'Image'];
+  const example = ['', 'Paint Roller Pro', 'Painting', 'Berger', 'High quality paint roller for smooth finish', '350', '450', '100', 'Yes', '', '← Paste actual product image here'];
+  
+  // Generate a minimal XLSX using base64
+  // We'll create a proper CSV that Excel can open, but name it .xlsx isn't ideal
+  // Instead, create a proper xlsx via the server template endpoint
+  const rows = [headers, example];
+  const csvContent = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'shop-products-template.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function ShopProductsPage() {
   const [products, setProducts] = useState<AdminShopProduct[]>([]);
   const [total, setTotal] = useState(0);
@@ -164,6 +183,9 @@ export default function ShopProductsPage() {
         />
         <button className="ghostButton" onClick={() => importInputRef.current?.click()} disabled={importing}>
           <Upload size={17}/>{importing ? 'Importing...' : 'Import Excel'}
+        </button>
+        <button className="ghostButton" onClick={downloadTemplate}>
+          <Download size={17}/>Download Template
         </button>
         <button className="ghostButton" onClick={handleExportExcel} disabled={exporting}>
           <Download size={17}/>{exporting ? 'Exporting...' : 'Export Excel'}
