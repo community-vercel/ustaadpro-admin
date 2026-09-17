@@ -661,6 +661,19 @@ export function importShopProducts(csvText: string) {
   });
 }
 
+export function deleteShopProduct(id: string) {
+  return request<{message: string}>(`/admin/shop/products/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+}
+
+export function bulkDeleteShopProducts(ids: string[]) {
+  return request<{message: string; deleted: number}>('/admin/shop/products/bulk-delete', {
+    method: 'POST',
+    body: JSON.stringify({ids}),
+  });
+}
+
 export function getShopOrders() {
   return request<AdminShopOrder[]>('/admin/shop/orders');
 }

@@ -2,9 +2,9 @@
 
 import {useCallback, useEffect, useRef, useState} from 'react';
 import Link from 'next/link';
-import {Download, Edit2, Eye, PackagePlus, RefreshCw, Search, Upload} from 'lucide-react';
+import {Download, Edit2, Eye, PackagePlus, RefreshCw, Search, Trash2, Upload} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
-import {AdminShopProduct, ShopImportResult, getShopProducts, importShopProducts, resolveAssetUrl} from '@/lib/api';
+import {AdminShopProduct, ShopImportResult, bulkDeleteShopProducts, deleteShopProduct, getShopProducts, importShopProducts, resolveAssetUrl} from '@/lib/api';
 import {money} from '@/lib/adminUi';
 
 const PAGE_SIZE = 10;
@@ -46,6 +46,12 @@ export default function ShopProductsPage() {
   const [importResult, setImportResult] = useState<ShopImportResult | null>(null);
   const [message, setMessage] = useState('');
   const importInputRef = useRef<HTMLInputElement>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
+
+  const allSelected = products.length > 0 && products.every(p => selected.has(p.id));
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(products.map(p => p.id)));
+  const toggleOne = (id: string) => setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -99,6 +105,36 @@ export default function ShopProductsPage() {
     }
   };
 
+  const handleDeleteOne = async (product: AdminShopProduct) => {
+    if (!confirm(`Delete "${product.title}"? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      await deleteShopProduct(product.id);
+      setSelected(prev => { const s = new Set(prev); s.delete(product.id); return s; });
+      void load();
+    } catch {
+      setMessage('Could not delete product.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    if (!confirm(`Delete ${ids.length} selected product(s)? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      await bulkDeleteShopProducts(ids);
+      setSelected(new Set());
+      void load();
+    } catch {
+      setMessage('Could not delete selected products.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const first = total ? (page - 1) * PAGE_SIZE + 1 : 0;
   const last = Math.min(page * PAGE_SIZE, total);
@@ -143,19 +179,33 @@ export default function ShopProductsPage() {
             {categories.map(item => <option key={item.name}>{item.name}</option>)}
           </select>
         </div>
+        {selected.size > 0 && (
+          <div style={{display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid #e5e7eb', marginBottom:4}}>
+            <span style={{fontSize:13, color:'#64748b'}}>{selected.size} selected</span>
+            <button className="dangerButton" onClick={handleBulkDelete} disabled={deleting}>
+              <Trash2 size={15}/>{deleting ? 'Deleting...' : `Delete ${selected.size}`}
+            </button>
+            <button className="ghostButton" style={{fontSize:13}} onClick={() => setSelected(new Set())}>Clear selection</button>
+          </div>
+        )}
         <div className="adminTableWrap">
           <table className="productTable">
-            <thead><tr><th>Product</th><th>Category</th><th>Brand</th><th>Stock</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th style={{width:36}}><input type="checkbox" checked={allSelected} onChange={toggleAll}/></th><th>Product</th><th>Category</th><th>Brand</th><th>Stock</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
               {products.map(product => (
-                <tr key={product.id}>
+                <tr key={product.id} style={selected.has(product.id) ? {background:'#fef9ec'} : {}}>
+                  <td><input type="checkbox" checked={selected.has(product.id)} onChange={() => toggleOne(product.id)}/></td>
                   <td><div className="productTableIdentity">{product.imageUrl ? <img src={resolveAssetUrl(product.imageUrl)} alt=""/> : <div className="productThumbFallback">P</div>}<div><strong>{product.title}</strong><small>{product.id}</small></div></div></td>
                   <td>{product.category}</td>
                   <td>{product.brand || <span style={{color:'#aaa',fontStyle:'italic'}}>—</span>}</td>
                   <td><span className={product.stock > 0 ? 'stockOk' : 'stockOut'}>{product.stock > 0 ? product.stock : 'Out of stock'}</span></td>
                   <td><strong>{money(product.price)}</strong>{product.originalPrice > product.price && <small className="tableSubtext">{money(product.originalPrice)}</small>}</td>
                   <td><span className={product.isActive ? 'productStatus active' : 'productStatus inactive'}>{product.isActive ? 'Active' : 'Inactive'}</span></td>
-                  <td><div className="rowActions"><Link title="View details" href={`/shop-products/${encodeURIComponent(product.id)}`}><Eye size={17}/></Link><Link title="Edit product" href={`/shop-products/${encodeURIComponent(product.id)}/edit`}><Edit2 size={17}/></Link></div></td>
+                  <td><div className="rowActions">
+                    <Link title="View details" href={`/shop-products/${encodeURIComponent(product.id)}`}><Eye size={17}/></Link>
+                    <Link title="Edit product" href={`/shop-products/${encodeURIComponent(product.id)}/edit`}><Edit2 size={17}/></Link>
+                    <button title="Delete product" onClick={() => handleDeleteOne(product)} disabled={deleting} style={{background:'none',border:'none',cursor:'pointer',color:'#ef4444',padding:'2px 4px',display:'flex',alignItems:'center'}}><Trash2 size={16}/></button>
+                  </div></td>
                 </tr>
               ))}
             </tbody>

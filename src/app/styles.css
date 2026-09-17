@@ -2453,3 +2453,28 @@ select.statusSelectCancelled {
 .userHistoryItem small { color:#667085; }
 @media (max-width:900px) { .userOrderCustomer,.userHistoryHead { grid-template-columns:1fr 1fr; } }
 @media (max-width:600px) { .userOrderCustomer,.userHistoryHead { grid-template-columns:1fr; } }
+.noticeSuccess {
+  border: 1px solid #86efac;
+  background: #f0fdf4;
+  color: #16a34a;
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin-bottom: 18px;
+  font-weight: 700;
+}
+.dangerButton {
+  height: 36px;
+  border: 1px solid #fca5a5;
+  background: #fff1f1;
+  color: #dc2626;
+  border-radius: 8px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+}
+.dangerButton:hover { background: #fee2e2; border-color: #f87171; }
+.dangerButton:disabled { opacity: 0.5; cursor: not-allowed; }
