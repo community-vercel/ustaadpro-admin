@@ -18,9 +18,9 @@ function escapeCsvField(value: string | number | boolean | undefined | null): st
 }
 
 function downloadCsv(products: AdminShopProduct[]) {
-  const headers = ['ID', 'Title', 'Category', 'Brand', 'Description', 'Price (PKR)', 'Original Price (PKR)', 'Stock', 'Active'];
+  const headers = ['ID', 'Title', 'Category', 'Brand', 'Description', 'Price (PKR)', 'Original Price (PKR)', 'Stock', 'Active', 'Image URL'];
   const rows = products.map(p =>
-    [p.id, p.title, p.category, p.brand || '', p.description, p.price, p.originalPrice, p.stock, p.isActive ? 'Yes' : 'No']
+    [p.id, p.title, p.category, p.brand || '', p.description, p.price, p.originalPrice, p.stock, p.isActive ? 'Yes' : 'No', p.imageUrl || '']
       .map(escapeCsvField).join(','),
   );
   const csv = [headers.join(','), ...rows].join('\n');
