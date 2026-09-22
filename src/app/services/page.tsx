@@ -161,8 +161,14 @@ export default function ServicesPage() {
     const configuredRows = allWorkRows.filter(w => (w.title && w.title.trim()) || Number(w.price || 0) > 0 || w.pricingMode === 'per_sqft');
     const invalidRows = configuredRows.filter(w => !(w.title && w.title.trim()) || !(Number(w.price || 0) > 0));
     if (invalidRows.length) {
+      const details = invalidRows.map(w => {
+        const missing: string[] = [];
+        if (!(w.title && w.title.trim())) missing.push('Work name');
+        if (!(Number(w.price || 0) > 0)) missing.push(`Price${w.pricingMode === 'per_sqft' ? ' (rate per sq ft)' : ''}`);
+        return `• "${w.title?.trim() || '(no name yet)'}" — missing: ${missing.join(' and ')}`;
+      });
       alert(
-        `${invalidRows.length} work row(s) are incomplete and would be lost.\n\nEvery work needs BOTH a name and a price greater than 0.\nExample: Name "Design A", Price 85, mode "Per sq ft".`,
+        `The pricing row you selected "Per sq ft" on is not complete yet.\n\n${details.join('\n')}\n\nIn the "Specific Work / Dynamic Prices" section, the row has these boxes:\n  1. Image  2. Work name  3. Note  4. Fixed/Per sq ft dropdown  5. Price\n\nFill in the WORK NAME (e.g. "Wall Texture Design A") and the PRICE (e.g. 85), then press Save again.\n\nOr if you don't want specific designs: leave the work row empty, and instead type "Per sq. ft." in the "Unit / Description" field of the service — the app will show the area calculator for the whole service.`,
       );
       return;
     }
