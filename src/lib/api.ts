@@ -227,6 +227,8 @@ export interface AdminSubcategory {
   description?: string | null;
   webImageUrl?: string;
   mobileIconUrl?: string;
+  // Per-sqft subcategories make all services under them area-based in the app.
+  pricingMode?: 'fixed' | 'per_sqft';
 }
 
 export interface AdminCatalogue {

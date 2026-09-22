@@ -285,7 +285,10 @@ export default function ServicesPage() {
                   <div key={sub.id} style={{position:'relative'}}>
                     <button className="catalogCategoryCard" style={{width:'100%'}} onClick={() => handleSubcategoryClick(sub)}>
                       <div className="catalogCategoryDot" style={{ background: selectedCategory.tint }} />
-                      <div className="catalogCategoryInfo"><strong>{sub.title}</strong><small>{sub.description || 'Sub-service'}</small></div>
+                      <div className="catalogCategoryInfo">
+                        <strong>{sub.title}</strong>
+                        <small>{sub.description || 'Sub-service'}{sub.pricingMode === 'per_sqft' ? ' · Per sq ft' : ''}</small>
+                      </div>
                       <ChevronRight size={16} className="catalogChevron" />
                     </button>
                     <div style={{position:'absolute', top:12, right:40, display:'flex', gap:6}}>
@@ -351,6 +354,18 @@ export default function ServicesPage() {
           <div className="formGrid" style={{marginBottom:20}}>
             <Field label="Subcategory Title" value={editingSubcategory.title || ''} onChange={v => setEditingSubcategory({...editingSubcategory, title: v})} />
             <Field label="Description" value={editingSubcategory.description || ''} onChange={v => setEditingSubcategory({...editingSubcategory, description: v})} />
+            <label className="field fieldWide" style={{flexDirection: 'row', alignItems: 'center', gap: 8, cursor: 'pointer'}}>
+              <input
+                type="checkbox"
+                checked={editingSubcategory.pricingMode === 'per_sqft'}
+                onChange={e => setEditingSubcategory({...editingSubcategory, pricingMode: e.target.checked ? 'per_sqft' : 'fixed'})}
+                style={{width: 18, height: 18}}
+              />
+              <span style={{fontWeight: 600}}>Per sq ft pricing (area calculator in app)</span>
+            </label>
+            <small style={{color: 'var(--muted)', marginTop: -12, marginBottom: 8}}>
+              When enabled, every service added under this subcategory shows the square-feet calculator in the customer app and charges price × area. Use for texture walls and similar area-based work.
+            </small>
             <label className="field">
               <span>Parent Category</span>
               <select value={editingSubcategory.categoryId || ''} onChange={e => setEditingSubcategory({...editingSubcategory, categoryId: e.target.value})}>
@@ -402,7 +417,11 @@ export default function ServicesPage() {
               <div className="field fieldWide workPriceEditor" style={{marginTop: 10}}>
                 <div className="workPriceHeader">
                   <span>Specific Work / Dynamic Prices</span>
-                  <button type="button" className="ghostButton" onClick={() => setEditingService(c => ({...c, workPrices: [...(c?.workPrices || []), {...blankWorkPrice, sortOrder: c?.workPrices?.length || 0}]}))}><Plus size={15} />Add Work</button>
+                  <button type="button" className="ghostButton" onClick={() => setEditingService(c => {
+                    const existingWorks = c?.workPrices || [];
+                    const lastMode = existingWorks.length ? existingWorks[existingWorks.length - 1].pricingMode : undefined;
+                    return {...c, workPrices: [...existingWorks, {...blankWorkPrice, pricingMode: lastMode || 'fixed', sortOrder: existingWorks.length}]};
+                  })}><Plus size={15} />Add Work</button>
                 </div>
                 {(editingService.workPrices?.length ? editingService.workPrices : [blankWorkPrice]).map((work, index) => (
                   <div className="workPriceRow" key={index}>
