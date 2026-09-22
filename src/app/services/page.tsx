@@ -155,6 +155,17 @@ export default function ServicesPage() {
 
   const handleSaveService = async () => {
     if (!editingService?.title || !editingService?.categoryId) return;
+    // Work rows without BOTH a name and a price are silently dropped by the
+    // server. Block the save with a clear message instead of losing them.
+    const allWorkRows = editingService.workPrices || [];
+    const configuredRows = allWorkRows.filter(w => (w.title && w.title.trim()) || Number(w.price || 0) > 0 || w.pricingMode === 'per_sqft');
+    const invalidRows = configuredRows.filter(w => !(w.title && w.title.trim()) || !(Number(w.price || 0) > 0));
+    if (invalidRows.length) {
+      alert(
+        `${invalidRows.length} work row(s) are incomplete and would be lost.\n\nEvery work needs BOTH a name and a price greater than 0.\nExample: Name "Design A", Price 85, mode "Per sq ft".`,
+      );
+      return;
+    }
     setBusy(true);
     try {
       const validWorkPrices = (editingService.workPrices || []).map((w, i) => ({...w, price: Number(w.price||0), pricingMode: (w.pricingMode === 'per_sqft' ? 'per_sqft' : 'fixed') as 'fixed' | 'per_sqft', sortOrder: i})).filter(w => w.title && w.price > 0);
@@ -432,9 +443,10 @@ export default function ServicesPage() {
                       value={work.pricingMode === 'per_sqft' ? 'per_sqft' : 'fixed'}
                       onChange={e => { const w = [...(editingService.workPrices||[blankWorkPrice])]; w[index] = {...w[index], pricingMode: e.target.value as 'fixed' | 'per_sqft'}; setEditingService({...editingService, workPrices: w}); }}
                       title="How this work is charged in the app"
+                      style={work.pricingMode === 'per_sqft' ? {borderColor: '#006C49', borderWidth: 2, fontWeight: 700, color: '#006C49', background: '#e7f5ef'} : undefined}
                     >
                       <option value="fixed">Fixed price</option>
-                      <option value="per_sqft">Per sq ft</option>
+                      <option value="per_sqft">Per sq ft ✓ (area calculator in app)</option>
                     </select>
                     <input
                       type="number"
@@ -445,9 +457,14 @@ export default function ServicesPage() {
                     <button type="button" className="secondaryButton" onClick={() => { const w = [...(editingService.workPrices||[])]; w.splice(index, 1); setEditingService({...editingService, workPrices: w}); }} disabled={(editingService.workPrices||[]).length <= 1}><Trash2 size={15} /></button>
                   </div>
                 ))}
-                <small style={{color: 'var(--muted)'}}>
-                  Per sq ft works (e.g. wall texture designs) ask the customer for area size in the app and charge price × square feet. These bookings require a 2-day advance appointment.
+                <small style={{color: 'var(--muted)', display: 'block', marginTop: 6}}>
+                  <b>Per sq ft works</b> (e.g. wall texture designs) show the area-size calculator in the app: customer enters square feet, app charges price × sq ft, and bookings require 2-day advance. Each work row needs <b>both a name and a price</b> to save.
                 </small>
+                {(editingService.workPrices || []).some(w => w.pricingMode === 'per_sqft' && w.title && w.title.trim() && Number(w.price || 0) > 0) && (
+                  <div className="noticeSuccess" style={{marginTop: 10, padding: '8px 12px'}}>
+                    ✓ This service will show the <b>square-feet calculator</b> in the customer app (customer picks designs, enters sq ft, app charges rate × area).
+                  </div>
+                )}
               </div>
 
               <Field label="Duration" value={editingService.duration || ''} onChange={v => setEditingService({ ...editingService, duration: v })} />
