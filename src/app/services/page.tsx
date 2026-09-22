@@ -45,7 +45,7 @@ function Modal({ title, onClose, children, width = 640 }: { title: string, onClo
   );
 }
 
-const blankWorkPrice = { title: '', description: '', imageUrl: '', price: 0, sortOrder: 0 };
+const blankWorkPrice = { title: '', description: '', imageUrl: '', price: 0, pricingMode: 'fixed' as 'fixed' | 'per_sqft', sortOrder: 0 };
 function compactList(items?: string[]) { return (items || []).map(item => item.trim()).filter(Boolean); }
 function ensureEditableList(items?: string[]) { const compacted = compactList(items); return compacted.length ? compacted : ['']; }
 type ServiceListKey = 'includes' | 'details' | 'excludes';
@@ -157,7 +157,7 @@ export default function ServicesPage() {
     if (!editingService?.title || !editingService?.categoryId) return;
     setBusy(true);
     try {
-      const validWorkPrices = (editingService.workPrices || []).map((w, i) => ({...w, price: Number(w.price||0), sortOrder: i})).filter(w => w.title && w.price > 0);
+      const validWorkPrices = (editingService.workPrices || []).map((w, i) => ({...w, price: Number(w.price||0), pricingMode: (w.pricingMode === 'per_sqft' ? 'per_sqft' : 'fixed') as 'fixed' | 'per_sqft', sortOrder: i})).filter(w => w.title && w.price > 0);
       const minPrice = validWorkPrices.length ? Math.min(...validWorkPrices.map(w => w.price)) : Number(editingService.price || 0);
       await saveService({
         ...editingService,
@@ -407,12 +407,28 @@ export default function ServicesPage() {
                 {(editingService.workPrices?.length ? editingService.workPrices : [blankWorkPrice]).map((work, index) => (
                   <div className="workPriceRow" key={index}>
                     <ImagePickerField label="Image" value={work.imageUrl || ''} onChange={v => { const w = [...(editingService.workPrices||[blankWorkPrice])]; w[index] = {...w[index], imageUrl: v}; setEditingService({...editingService, workPrices: w}); }} />
-                    <input value={work.title || ''} onChange={e => { const w = [...(editingService.workPrices||[blankWorkPrice])]; w[index] = {...w[index], title: e.target.value}; setEditingService({...editingService, workPrices: w}); }} placeholder="Work name" />
+                    <input value={work.title || ''} onChange={e => { const w = [...(editingService.workPrices||[blankWorkPrice])]; w[index] = {...w[index], title: e.target.value}; setEditingService({...editingService, workPrices: w}); }} placeholder="Work name e.g. Design A" />
                     <input value={work.description || ''} onChange={e => { const w = [...(editingService.workPrices||[blankWorkPrice])]; w[index] = {...w[index], description: e.target.value}; setEditingService({...editingService, workPrices: w}); }} placeholder="Note" />
-                    <input type="number" value={String(work.price || '')} onChange={e => { const w = [...(editingService.workPrices||[blankWorkPrice])]; w[index] = {...w[index], price: Number(e.target.value)}; setEditingService({...editingService, workPrices: w}); }} placeholder="Price" />
+                    <select
+                      value={work.pricingMode === 'per_sqft' ? 'per_sqft' : 'fixed'}
+                      onChange={e => { const w = [...(editingService.workPrices||[blankWorkPrice])]; w[index] = {...w[index], pricingMode: e.target.value as 'fixed' | 'per_sqft'}; setEditingService({...editingService, workPrices: w}); }}
+                      title="How this work is charged in the app"
+                    >
+                      <option value="fixed">Fixed price</option>
+                      <option value="per_sqft">Per sq ft</option>
+                    </select>
+                    <input
+                      type="number"
+                      value={String(work.price || '')}
+                      onChange={e => { const w = [...(editingService.workPrices||[blankWorkPrice])]; w[index] = {...w[index], price: Number(e.target.value)}; setEditingService({...editingService, workPrices: w}); }}
+                      placeholder={work.pricingMode === 'per_sqft' ? 'Rs / sq ft' : 'Price'}
+                    />
                     <button type="button" className="secondaryButton" onClick={() => { const w = [...(editingService.workPrices||[])]; w.splice(index, 1); setEditingService({...editingService, workPrices: w}); }} disabled={(editingService.workPrices||[]).length <= 1}><Trash2 size={15} /></button>
                   </div>
                 ))}
+                <small style={{color: 'var(--muted)'}}>
+                  Per sq ft works (e.g. wall texture designs) ask the customer for area size in the app and charge price × square feet. These bookings require a 2-day advance appointment.
+                </small>
               </div>
 
               <Field label="Duration" value={editingService.duration || ''} onChange={v => setEditingService({ ...editingService, duration: v })} />

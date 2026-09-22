@@ -178,13 +178,18 @@ export default function OrderDetailPage() {
 
           <div className="orderedServices">
             {order.items.map(item => (
-              <div className="orderedService" key={item.serviceId}>
+              <div className="orderedService" key={item.serviceId + '-' + (item.serviceWorkPriceId ?? 'direct')}>
                 {item.imageUrl && <img src={resolveAssetUrl(item.imageUrl)} alt="" />}
                 <div>
                   <strong>
-                    {item.quantity}x {item.title}
+                    {item.quantity}x {item.serviceWorkTitle || item.title}
                   </strong>
                   <p>{item.description}</p>
+                  {item.workPricingMode === 'per_sqft' && (
+                    <small>
+                      Design priced per sq ft: {money(item.workPricePerSqft || 0)} × {item.workAreaSqft || 0} sq ft
+                    </small>
+                  )}
                   <small>
                     {item.serviceType || 'Standard Visit'} - {item.duration} -{' '}
                     {item.categoryId}

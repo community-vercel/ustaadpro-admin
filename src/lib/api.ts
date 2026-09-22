@@ -95,6 +95,9 @@ export interface AdminOrder {
     serviceType?: string;
     serviceWorkPriceId?: number | null;
     serviceWorkTitle?: string | null;
+    workAreaSqft?: number | null;
+    workPricePerSqft?: number | null;
+    workPricingMode?: string | null;
     imageUrl?: string;
     detailDescription?: string;
     details?: string[];
@@ -138,6 +141,8 @@ export interface AdminPaymentReceipt {
   address: string;
   items: AdminOrder['items'];
 }
+export type WorkPricingMode = 'fixed' | 'per_sqft';
+
 export interface AdminServiceWorkPrice {
   id?: number;
   serviceId?: string;
@@ -145,6 +150,7 @@ export interface AdminServiceWorkPrice {
   description?: string;
   imageUrl?: string;
   price: number;
+  pricingMode?: WorkPricingMode;
   sortOrder?: number;
 }
 
