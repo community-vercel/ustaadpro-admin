@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { ChevronRight, Layers, PackagePlus, Plus, RefreshCw, Trash2, Edit2, Upload, FolderPlus, FilePlus, X } from 'lucide-react';
+import { ChevronRight, Layers, PackagePlus, Plus, RefreshCw, Trash2, Edit2, Upload, FolderPlus, FilePlus, X, Copy, AlertCircle, Calculator } from 'lucide-react';
 import { AdminShell } from '@/components/AdminShell';
 import { Field, ImagePickerField } from '@/components/AdminFields';
 import {
   AdminCategory,
   AdminSubcategory,
   AdminService,
+  AdminServiceWorkPrice,
   getAdminCatalogue,
   getCategories,
   getServices,
@@ -49,6 +50,185 @@ const blankWorkPrice = { title: '', description: '', imageUrl: '', price: 0, pri
 function compactList(items?: string[]) { return (items || []).map(item => item.trim()).filter(Boolean); }
 function ensureEditableList(items?: string[]) { const compacted = compactList(items); return compacted.length ? compacted : ['']; }
 type ServiceListKey = 'includes' | 'details' | 'excludes';
+
+/* --- Work Price / Texture Sub-Category Editor ---
+ * Card-based editor for a service's specific works (e.g. texture designs).
+ * Each card = one sub-category in the customer app with its own image and
+ * rate. Per-sqft rows activate the square-feet calculator in the app.
+ */
+function WorkPriceEditor({ value, onChange }: { value: AdminServiceWorkPrice[]; onChange: (next: AdminServiceWorkPrice[]) => void }) {
+  const rows = value || [];
+  const anyPerSqft = rows.some(w => w.pricingMode === 'per_sqft');
+  const allPerSqft = rows.length > 0 && rows.every(w => w.pricingMode === 'per_sqft');
+  const perSqftPrices = rows
+    .filter(w => w.pricingMode === 'per_sqft' && Number(w.price || 0) > 0)
+    .map(w => Number(w.price));
+  const rateRange = perSqftPrices.length
+    ? perSqftPrices.length > 1
+      ? `Rs ${Math.min(...perSqftPrices)} – Rs ${Math.max(...perSqftPrices)}/sq ft`
+      : `Rs ${perSqftPrices[0]}/sq ft`
+    : '';
+
+  const updateRow = (index: number, patch: Partial<AdminServiceWorkPrice>) =>
+    onChange(rows.map((w, i) => (i === index ? { ...w, ...patch } : w)));
+
+  const addRow = () => {
+    const lastMode = rows.length ? rows[rows.length - 1].pricingMode : 'fixed';
+    onChange([...rows, { ...blankWorkPrice, pricingMode: lastMode || 'fixed', sortOrder: rows.length }]);
+  };
+
+  const removeRow = (index: number) => onChange(rows.filter((_, i) => i !== index));
+
+  const duplicateRow = (index: number) => {
+    const source = rows[index];
+    const copy: AdminServiceWorkPrice = {
+      ...source,
+      id: undefined,
+      title: source.title ? `${source.title} (copy)` : '',
+      price: 0,
+    };
+    onChange([...rows.slice(0, index + 1), copy, ...rows.slice(index + 1)]);
+  };
+
+  const isIncomplete = (w: AdminServiceWorkPrice) => {
+    const started = (w.title && w.title.trim()) || Number(w.price || 0) > 0 || w.pricingMode === 'per_sqft';
+    return Boolean(started && (!(w.title && w.title.trim()) || !(Number(w.price || 0) > 0)));
+  };
+
+  return (
+    <div className="field fieldWide workPriceEditor" style={{ marginTop: 10 }}>
+      <div className="workPriceHeader">
+        <span>
+          {anyPerSqft ? 'Texture Sub-Categories / Designs & Pricing' : 'Specific Work / Dynamic Prices'}
+        </span>
+        <button type="button" className="primaryButton" style={{ height: 36 }} onClick={addRow}>
+          <Plus size={15} />Add Sub-Category
+        </button>
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="workEmptyState">
+          <strong>No sub-categories yet</strong>
+          <p>
+            Add texture designs (e.g. “Design A”, “Design B”). Each one gets its own image and its own
+            rate, and appears in the customer app as a selectable sub-category.
+          </p>
+          <button type="button" className="secondaryButton" onClick={addRow}><Plus size={15} />Add first design</button>
+        </div>
+      ) : (
+        <div className="workCards">
+          {rows.map((work, index) => (
+            <div className={isIncomplete(work) ? 'workCard incomplete' : 'workCard'} key={index}>
+              <div className="workCardImg">
+                <ImagePickerField
+                  label="Design image"
+                  value={work.imageUrl || ''}
+                  onChange={v => updateRow(index, { imageUrl: v })}
+                />
+              </div>
+              <div className="workCardFields">
+                <div className="workCardTop">
+                  <span className="workCardIndex">{index + 1}</span>
+                  <span className="workCardNamePreview">
+                    {work.title?.trim() || 'Unnamed design'}
+                  </span>
+                  {work.pricingMode === 'per_sqft' && (
+                    <span className="workModeChip"><Calculator size={12} />Per sq ft</span>
+                  )}
+                  <div className="workCardActions" style={{ marginLeft: 'auto' }}>
+                    <button type="button" className="ghostButton" style={{ height: 30, padding: '0 8px' }} title="Duplicate this design" onClick={() => duplicateRow(index)}><Copy size={14} /></button>
+                    <button
+                      type="button"
+                      className="ghostButton"
+                      style={{ height: 30, padding: '0 8px', color: '#ef4444', borderColor: '#fca5a5', background: '#fff1f1' }}
+                      title="Remove this design"
+                      onClick={() => removeRow(index)}
+                    ><Trash2 size={14} /></button>
+                  </div>
+                </div>
+
+                <label className="workField">
+                  <span className="workFieldLabel">Design name (shown in app)</span>
+                  <input
+                    value={work.title || ''}
+                    onChange={e => updateRow(index, { title: e.target.value })}
+                    placeholder="e.g. Wall Texture Design A"
+                  />
+                </label>
+
+                <label className="workField">
+                  <span className="workFieldLabel">Short note (optional)</span>
+                  <input
+                    value={work.description || ''}
+                    onChange={e => updateRow(index, { description: e.target.value })}
+                    placeholder="e.g. Modern textured wall finish"
+                  />
+                </label>
+
+                <div className="workPricingRow">
+                  <div>
+                    <span className="workFieldLabel">Pricing type</span>
+                    <div className="modeToggle">
+                      <button
+                        type="button"
+                        className={work.pricingMode === 'per_sqft' ? 'modeToggleBtn' : 'modeToggleBtn active'}
+                        onClick={() => updateRow(index, { pricingMode: 'fixed' })}
+                      >Fixed price</button>
+                      <button
+                        type="button"
+                        className={work.pricingMode === 'per_sqft' ? 'modeToggleBtn activeSqft' : 'modeToggleBtn'}
+                        onClick={() => updateRow(index, { pricingMode: 'per_sqft' })}
+                      >Per sq ft</button>
+                    </div>
+                  </div>
+                  <label className="workField" style={{ flex: 1 }}>
+                    <span className="workFieldLabel">
+                      {work.pricingMode === 'per_sqft' ? 'Rate (PKR per square feet)' : 'Price (PKR)'}
+                    </span>
+                    <div className="priceInputWrap">
+                      <input
+                        type="number"
+                        value={String(work.price || '')}
+                        onChange={e => updateRow(index, { price: Number(e.target.value) })}
+                        placeholder={work.pricingMode === 'per_sqft' ? 'e.g. 85' : 'e.g. 1500'}
+                      />
+                      <span className="priceUnit">
+                        {work.pricingMode === 'per_sqft' ? 'Rs / sq ft' : 'Rs'}
+                      </span>
+                    </div>
+                  </label>
+                </div>
+
+                {isIncomplete(work) && (
+                  <div className="workCardWarning">
+                    <AlertCircle size={14} />
+                    Fill in the design name and the {work.pricingMode === 'per_sqft' ? 'rate per sq ft' : 'price'} to save this row.
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {rows.length > 0 && (
+        <div className="workSummaryBar">
+          <span><b>{rows.length}</b> sub-category{rows.length === 1 ? '' : 'ies'}</span>
+          {rateRange && <span className="workSummaryChip">{rateRange}</span>}
+          {anyPerSqft && (
+            <span className="workSummaryChip success"><Calculator size={12} />Area calculator active in app</span>
+          )}
+        </div>
+      )}
+
+      <small style={{ color: 'var(--muted)', display: 'block', marginTop: 6 }}>
+        <b>Per sq ft designs</b> (e.g. wall texture) let the customer pick a sub-category, enter square
+        feet, and get charged rate × area in the app. Texture bookings require 2-day advance. Each row
+        needs <b>both a name and a price/rate</b> to save.
+      </small>
+    </div>
+  );
+}
 
 export default function ServicesPage() {
   const [categories, setCategories] = useState<AdminCategory[]>([]);
@@ -431,46 +611,11 @@ export default function ServicesPage() {
                 <span style={{fontWeight: 600}}>Allow Multiple Quantity (+/-) in App</span>
               </label>
 
-              <div className="field fieldWide workPriceEditor" style={{marginTop: 10}}>
-                <div className="workPriceHeader">
-                  <span>Specific Work / Dynamic Prices</span>
-                  <button type="button" className="ghostButton" onClick={() => setEditingService(c => {
-                    const existingWorks = c?.workPrices || [];
-                    const lastMode = existingWorks.length ? existingWorks[existingWorks.length - 1].pricingMode : undefined;
-                    return {...c, workPrices: [...existingWorks, {...blankWorkPrice, pricingMode: lastMode || 'fixed', sortOrder: existingWorks.length}]};
-                  })}><Plus size={15} />Add Work</button>
-                </div>
-                {(editingService.workPrices?.length ? editingService.workPrices : [blankWorkPrice]).map((work, index) => (
-                  <div className="workPriceRow" key={index}>
-                    <ImagePickerField label="Image" value={work.imageUrl || ''} onChange={v => { const w = [...(editingService.workPrices||[blankWorkPrice])]; w[index] = {...w[index], imageUrl: v}; setEditingService({...editingService, workPrices: w}); }} />
-                    <input value={work.title || ''} onChange={e => { const w = [...(editingService.workPrices||[blankWorkPrice])]; w[index] = {...w[index], title: e.target.value}; setEditingService({...editingService, workPrices: w}); }} placeholder="Work name e.g. Design A" />
-                    <input value={work.description || ''} onChange={e => { const w = [...(editingService.workPrices||[blankWorkPrice])]; w[index] = {...w[index], description: e.target.value}; setEditingService({...editingService, workPrices: w}); }} placeholder="Note" />
-                    <select
-                      value={work.pricingMode === 'per_sqft' ? 'per_sqft' : 'fixed'}
-                      onChange={e => { const w = [...(editingService.workPrices||[blankWorkPrice])]; w[index] = {...w[index], pricingMode: e.target.value as 'fixed' | 'per_sqft'}; setEditingService({...editingService, workPrices: w}); }}
-                      title="How this work is charged in the app"
-                      style={work.pricingMode === 'per_sqft' ? {borderColor: '#006C49', borderWidth: 2, fontWeight: 700, color: '#006C49', background: '#e7f5ef'} : undefined}
-                    >
-                      <option value="fixed">Fixed price</option>
-                      <option value="per_sqft">Per sq ft ✓ (area calculator in app)</option>
-                    </select>
-                    <input
-                      type="number"
-                      value={String(work.price || '')}
-                      onChange={e => { const w = [...(editingService.workPrices||[blankWorkPrice])]; w[index] = {...w[index], price: Number(e.target.value)}; setEditingService({...editingService, workPrices: w}); }}
-                      placeholder={work.pricingMode === 'per_sqft' ? 'Rs / sq ft' : 'Price'}
-                    />
-                    <button type="button" className="secondaryButton" onClick={() => { const w = [...(editingService.workPrices||[])]; w.splice(index, 1); setEditingService({...editingService, workPrices: w}); }} disabled={(editingService.workPrices||[]).length <= 1}><Trash2 size={15} /></button>
-                  </div>
-                ))}
-                <small style={{color: 'var(--muted)', display: 'block', marginTop: 6}}>
-                  <b>Per sq ft works</b> (e.g. wall texture designs) show the area-size calculator in the app: customer enters square feet, app charges price × sq ft, and bookings require 2-day advance. Each work row needs <b>both a name and a price</b> to save.
-                </small>
-                {(editingService.workPrices || []).some(w => w.pricingMode === 'per_sqft' && w.title && w.title.trim() && Number(w.price || 0) > 0) && (
-                  <div className="noticeSuccess" style={{marginTop: 10, padding: '8px 12px'}}>
-                    ✓ This service will show the <b>square-feet calculator</b> in the customer app (customer picks designs, enters sq ft, app charges rate × area).
-                  </div>
-                )}
+              <div className="field fieldWide" style={{marginTop: 10}}>
+                <WorkPriceEditor
+                  value={editingService.workPrices || []}
+                  onChange={next => setEditingService({ ...editingService, workPrices: next })}
+                />
               </div>
 
               <Field label="Duration" value={editingService.duration || ''} onChange={v => setEditingService({ ...editingService, duration: v })} />

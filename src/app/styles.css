@@ -297,34 +297,222 @@ select {
   gap: 12px;
 }
 
-.workPriceRow {
+/* ── Card-based work-price / texture sub-category editor ── */
+.workCards {
   display: grid;
-  grid-template-columns: 150px 1.2fr 1fr 110px 110px 44px;
-  gap: 8px;
+  gap: 12px;
+}
+
+.workCard {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 14px;
+  background: #fafcfa;
+}
+
+.workCard.incomplete {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.workCardImg .imageUpload img {
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.workCardFields {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.workCardTop {
+  display: flex;
   align-items: center;
+  gap: 8px;
 }
 
-.workPriceRow select {
-  width: 100%;
-  min-width: 0;
+.workCardIndex {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  background: #006c49;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
 }
 
-.workPriceRow input {
-  width: 100%;
-  min-width: 0;
+.workCardNamePreview {
+  font-weight: 800;
+  font-size: 14px;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.workPriceRow .imageUpload {
+.workCardActions {
+  display: flex;
   gap: 6px;
 }
 
-.workPriceRow .imageUpload input {
-  padding: 8px;
+.workModeChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #e7f5ef;
+  color: #006c49;
   font-size: 11px;
+  font-weight: 800;
 }
 
-.workPriceRow .imageUpload img {
-  height: 72px;
+.workField {
+  display: grid;
+  gap: 4px;
+}
+
+.workFieldLabel {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.workField input {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 9px;
+  font-size: 13px;
+}
+
+.workPricingRow {
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.modeToggle {
+  display: inline-flex;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.modeToggleBtn {
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  background: #fff;
+  color: #475569;
+  border: none;
+  cursor: pointer;
+}
+
+.modeToggleBtn.active {
+  background: #006c49;
+  color: #fff;
+}
+
+.modeToggleBtn.activeSqft {
+  background: #006c49;
+  color: #fff;
+}
+
+.priceInputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.priceInputWrap input {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 92px 9px 10px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.priceInputWrap .priceUnit {
+  position: absolute;
+  right: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #006c49;
+  pointer-events: none;
+}
+
+.workCardWarning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #b45309;
+}
+
+.workEmptyState {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 26px 16px;
+  border: 1.5px dashed var(--border, #cbd5e1);
+  border-radius: 14px;
+  text-align: center;
+}
+
+.workEmptyState strong {
+  font-size: 14px;
+}
+
+.workEmptyState p {
+  max-width: 460px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.workSummaryBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  font-size: 12.5px;
+}
+
+.workSummaryChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--border, #e2e8f0);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.workSummaryChip.success {
+  background: #e7f5ef;
+  border-color: #b5e0cf;
+  color: #006c49;
 }
 
 .workPriceEditor small {
