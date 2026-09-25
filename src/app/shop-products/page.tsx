@@ -2,9 +2,9 @@
 
 import {useCallback, useEffect, useRef, useState} from 'react';
 import Link from 'next/link';
-import {Download, Edit2, Eye, PackagePlus, RefreshCw, Search, Trash2, Upload} from 'lucide-react';
+import {Check, Download, Edit2, Eye, PackagePlus, RefreshCw, Search, Trash2, Upload, X} from 'lucide-react';
 import {AdminShell} from '@/components/AdminShell';
-import {AdminShopProduct, ShopImportResult, API_BASE_URL, bulkDeleteShopProducts, deleteAllShopProducts, deleteShopProduct, getShopProducts, importShopProductsExcel, resolveAssetUrl} from '@/lib/api';
+import {AdminShopProduct, ShopImportResult, API_BASE_URL, bulkDeleteShopProducts, deleteAllShopProducts, deleteShopProduct, getShopProducts, importShopProductsExcel, resolveAssetUrl, saveShopProduct} from '@/lib/api';
 import {money} from '@/lib/adminUi';
 
 const PAGE_SIZE = 10;
@@ -45,6 +45,9 @@ export default function ShopProductsPage() {
   const importInputRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
+  const [quickEdit, setQuickEdit] = useState<{id: string; field: 'price' | 'brand'} | null>(null);
+  const [quickEditValue, setQuickEditValue] = useState('');
+  const [quickEditSaving, setQuickEditSaving] = useState(false);
 
   const allSelected = products.length > 0 && products.every(p => selected.has(p.id));
   const toggleAll = () => setSelected(allSelected ? new Set() : new Set(products.map(p => p.id)));
@@ -152,6 +155,53 @@ export default function ShopProductsPage() {
     }
   };
 
+  const startQuickEdit = (product: AdminShopProduct, field: 'price' | 'brand') => {
+    setQuickEdit({id: product.id, field});
+    setQuickEditValue(field === 'price' ? String(product.price ?? '') : (product.brand || ''));
+  };
+
+  const cancelQuickEdit = () => {
+    setQuickEdit(null);
+    setQuickEditValue('');
+  };
+
+  const saveQuickEdit = async () => {
+    if (!quickEdit) return;
+    const product = products.find(item => item.id === quickEdit.id);
+    if (!product) return cancelQuickEdit();
+    if (quickEdit.field === 'price') {
+      const price = Number(quickEditValue);
+      if (!Number.isFinite(price) || price <= 0) {
+        setMessage('Enter a valid price greater than 0.');
+        return;
+      }
+      setQuickEditSaving(true);
+      try {
+        await saveShopProduct({...product, price});
+        setProducts(prev => prev.map(item => item.id === product.id ? {...item, price} : item));
+        setQuickEdit(null);
+        setQuickEditValue('');
+      } catch {
+        setMessage('Could not update price.');
+      } finally {
+        setQuickEditSaving(false);
+      }
+      return;
+    }
+    const brand = quickEditValue.trim();
+    setQuickEditSaving(true);
+    try {
+      await saveShopProduct({...product, brand: brand || undefined});
+      setProducts(prev => prev.map(item => item.id === product.id ? {...item, brand: brand || undefined} : item));
+      setQuickEdit(null);
+      setQuickEditValue('');
+    } catch {
+      setMessage('Could not update brand.');
+    } finally {
+      setQuickEditSaving(false);
+    }
+  };
+
   const handleDeleteAll = async () => {
     if (!confirm(`⚠️ Delete ALL ${total} shop products? This will remove every product from the database and cannot be undone.`)) return;
     const confirmation = prompt('Are you absolutely sure? Type "DELETE ALL" to confirm.');
@@ -241,9 +291,28 @@ export default function ShopProductsPage() {
                   <td><input type="checkbox" checked={selected.has(product.id)} onChange={() => toggleOne(product.id)}/></td>
                   <td><div className="productTableIdentity">{product.imageUrl ? <img src={resolveAssetUrl(product.imageUrl)} alt=""/> : <div className="productThumbFallback">P</div>}<div><strong>{product.title}</strong><small>{product.id}</small></div></div></td>
                   <td>{product.category}</td>
-                  <td>{product.brand || <span style={{color:'#aaa',fontStyle:'italic'}}>—</span>}</td>
+                  <td><div className="quickEditCell">{quickEdit?.id === product.id && quickEdit.field === 'brand' ? (
+                    <>
+                      <input autoFocus className="quickEditInput" value={quickEditValue} disabled={quickEditSaving} placeholder="Brand" onChange={e => setQuickEditValue(e.target.value)} onKeyDown={e => {if (e.key === 'Enter') void saveQuickEdit(); if (e.key === 'Escape') cancelQuickEdit();}}/>
+                      <button className="quickEditButton save" title="Save brand" onClick={() => void saveQuickEdit()} disabled={quickEditSaving}><Check size={15}/></button>
+                      <button className="quickEditButton cancel" title="Cancel" onClick={cancelQuickEdit} disabled={quickEditSaving}><X size={15}/></button>
+                    </>
+                  ) : (<>
+                    {product.brand || <span style={{color:'#aaa',fontStyle:'italic'}}>—</span>}
+                    <button className="quickEditButton" title="Edit brand" onClick={() => startQuickEdit(product, 'brand')}><Edit2 size={14}/></button>
+                  </>)}</div></td>
                   <td><span className={product.stock > 0 ? 'stockOk' : 'stockOut'}>{product.stock > 0 ? product.stock : 'Out of stock'}</span></td>
-                  <td><strong>{money(product.price)}</strong>{product.originalPrice > product.price && <small className="tableSubtext">{money(product.originalPrice)}</small>}</td>
+                  <td><div className="quickEditCell">{quickEdit?.id === product.id && quickEdit.field === 'price' ? (
+                    <>
+                      <input autoFocus className="quickEditInput" type="number" min={1} step="any" value={quickEditValue} disabled={quickEditSaving} onChange={e => setQuickEditValue(e.target.value)} onKeyDown={e => {if (e.key === 'Enter') void saveQuickEdit(); if (e.key === 'Escape') cancelQuickEdit();}}/>
+                      <button className="quickEditButton save" title="Save price" onClick={() => void saveQuickEdit()} disabled={quickEditSaving}><Check size={15}/></button>
+                      <button className="quickEditButton cancel" title="Cancel" onClick={cancelQuickEdit} disabled={quickEditSaving}><X size={15}/></button>
+                    </>
+                  ) : (<>
+                    <strong>{money(product.price)}</strong>
+                    {product.originalPrice > product.price && <small className="tableSubtext">{money(product.originalPrice)}</small>}
+                    <button className="quickEditButton" title="Edit price" onClick={() => startQuickEdit(product, 'price')}><Edit2 size={14}/></button>
+                  </>)}</div></td>
                   <td><span className={product.isActive ? 'productStatus active' : 'productStatus inactive'}>{product.isActive ? 'Active' : 'Inactive'}</span></td>
                   <td><div className="rowActions">
                     <Link title="View details" href={`/shop-products/${encodeURIComponent(product.id)}`}><Eye size={17}/></Link>
