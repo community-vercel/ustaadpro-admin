@@ -79,7 +79,12 @@ export default function OrderDetailPage() {
     ? order.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
     : 0;
   const textureItems = order
-    ? order.items.filter(item => item.workPricingMode === 'per_sqft')
+    ? order.items.filter(
+        item =>
+          item.workPricingMode === 'per_sqft' ||
+          Number(item.workAreaSqft || 0) > 0 ||
+          Number(item.workPricePerSqft || 0) > 0,
+      )
     : [];
 
   return (
@@ -185,18 +190,20 @@ export default function OrderDetailPage() {
               <table className="textureTable">
                 <thead>
                   <tr>
+                    <th>Service</th>
                     <th>Texture design</th>
-                    <th>Area</th>
-                    <th>Rate</th>
+                    <th>Area selected</th>
+                    <th>Price per sq ft</th>
                     <th>Line total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {textureItems.map(item => (
                     <tr key={`texture-${item.serviceId}-${item.serviceWorkPriceId ?? item.title}`}>
+                      <td>{item.title || item.storedServiceTitle || 'Service'}</td>
                       <td>{item.serviceWorkTitle || item.title}</td>
                       <td>{item.workAreaSqft || 0} sq ft</td>
-                      <td>{money(item.workPricePerSqft || 0)}/sq ft</td>
+                      <td>{money(item.workPricePerSqft || 0)}</td>
                       <td>{money(item.price * item.quantity * (schedule?.isRecurring ? schedule.occurrences : 1))}</td>
                     </tr>
                   ))}
@@ -220,18 +227,22 @@ export default function OrderDetailPage() {
                 area > 0 ||
                 rate > 0 ||
                 /per\s*sq/i.test(item.description || '');
+              const parentServiceName = item.title || item.storedServiceTitle || 'Service';
+              const textureTypeName = item.serviceWorkTitle || '';
+              const isTextureNamedType =
+                isTexture && textureTypeName && textureTypeName !== parentServiceName;
               return (
               <div className="orderedService" key={item.serviceId + '-' + (item.serviceWorkPriceId ?? 'direct')}>
                 {item.imageUrl && <img src={resolveAssetUrl(item.imageUrl)} alt="" />}
                 <div>
                   <strong>
-                    {item.quantity}x {item.serviceWorkTitle || item.title}
+                    {item.quantity}x {parentServiceName}
                   </strong>
                   {isTexture && (
                     <small className="textureDetailLine">
-                      Texture design: <strong>{item.serviceWorkTitle || item.title}</strong>
-                      {area > 0 ? <> · Area: <strong>{area} sq ft</strong></> : null}
-                      {rate > 0 ? <> · Rate: <strong>{money(rate)}/sq ft</strong></> : null}
+                      Texture design: <strong>{textureTypeName || parentServiceName}</strong>
+                      {area > 0 ? <> · Area selected: <strong>{area} sq ft</strong></> : null}
+                      {rate > 0 ? <> · Price: <strong>{money(rate)} per sq ft</strong></> : null}
                       {area > 0 && rate > 0 ? <> · Textures total: <strong>{money(area * rate)}</strong></> : null}
                     </small>
                   )}

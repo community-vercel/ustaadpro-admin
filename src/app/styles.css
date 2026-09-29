@@ -2792,3 +2792,54 @@ select.statusSelectCancelled {
 .textureDetailLine strong {
   color: #047857;
 }
+
+.textureSummaryBox {
+  border: 1px solid #bfe9d4;
+  background: #f4fdf8;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.textureSummaryBox > span {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #047857;
+  margin-bottom: 10px;
+}
+
+.textureTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.textureTable th,
+.textureTable td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid #d7ece0;
+  color: #0f172a;
+}
+
+.textureTable th {
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #065f46;
+}
+
+.textureTable tr:last-child td {
+  border-bottom: none;
+}
+
+.textureNote {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #64748b;
+}

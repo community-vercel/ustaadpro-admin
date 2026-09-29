@@ -89,6 +89,7 @@ export interface AdminOrder {
   items: Array<{
     serviceId: string;
     title: string;
+    storedServiceTitle?: string | null;
     description: string;
     duration: string;
     categoryId: string;
