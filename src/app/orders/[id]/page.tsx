@@ -78,6 +78,9 @@ export default function OrderDetailPage() {
   const baseServicesSubtotal = order
     ? order.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
     : 0;
+  const textureItems = order
+    ? order.items.filter(item => item.workPricingMode === 'per_sqft')
+    : [];
 
   return (
     <AdminShell
@@ -176,34 +179,72 @@ export default function OrderDetailPage() {
             <strong>{order.address}</strong>
           </div>
 
+          {textureItems.length ? (
+            <div className="detailBlockWide textureSummaryBox">
+              <span>Texture design details</span>
+              <table className="textureTable">
+                <thead>
+                  <tr>
+                    <th>Texture design</th>
+                    <th>Area</th>
+                    <th>Rate</th>
+                    <th>Line total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {textureItems.map(item => (
+                    <tr key={`texture-${item.serviceId}-${item.serviceWorkPriceId ?? item.title}`}>
+                      <td>{item.serviceWorkTitle || item.title}</td>
+                      <td>{item.workAreaSqft || 0} sq ft</td>
+                      <td>{money(item.workPricePerSqft || 0)}/sq ft</td>
+                      <td>{money(item.price * item.quantity * (schedule?.isRecurring ? schedule.occurrences : 1))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <small className="textureNote">
+                Design bookings require at least 3 days advance appointment.
+              </small>
+            </div>
+          ) : null}
+
           <div className="orderedServices">
-            {order.items.map(item => (
+            {order.items.map(item => {
+              const area = Number(item.workAreaSqft || 0);
+              const rate = Number(item.workPricePerSqft || 0);
+              const lineTotal =
+                item.price * item.quantity * (schedule?.isRecurring ? schedule.occurrences : 1);
+              // Texture orders: pricing mode, stored area/rate, or a "per sq ft" description all identify them.
+              const isTexture =
+                item.workPricingMode === 'per_sqft' ||
+                area > 0 ||
+                rate > 0 ||
+                /per\s*sq/i.test(item.description || '');
+              return (
               <div className="orderedService" key={item.serviceId + '-' + (item.serviceWorkPriceId ?? 'direct')}>
                 {item.imageUrl && <img src={resolveAssetUrl(item.imageUrl)} alt="" />}
                 <div>
                   <strong>
                     {item.quantity}x {item.serviceWorkTitle || item.title}
                   </strong>
-                  <p>{item.description}</p>
-                  {item.workPricingMode === 'per_sqft' && (
+                  {isTexture && (
                     <small className="textureDetailLine">
-                      Texture design: <strong>{item.serviceWorkTitle || item.title}</strong> · Area: <strong>{item.workAreaSqft || 0} sq ft</strong> · Rate: <strong>{money(item.workPricePerSqft || 0)}/sq ft</strong> · Line total: <strong>{money(item.price * item.quantity * (schedule?.isRecurring ? schedule.occurrences : 1))}</strong>
+                      Texture design: <strong>{item.serviceWorkTitle || item.title}</strong>
+                      {area > 0 ? <> · Area: <strong>{area} sq ft</strong></> : null}
+                      {rate > 0 ? <> · Rate: <strong>{money(rate)}/sq ft</strong></> : null}
+                      {area > 0 && rate > 0 ? <> · Textures total: <strong>{money(area * rate)}</strong></> : null}
                     </small>
                   )}
+                  <p>{item.description}</p>
                   <small>
                     {item.serviceType || 'Standard Visit'} - {item.duration} -{' '}
                     {item.categoryId}
                   </small>
                 </div>
-                <b>
-                  {money(
-                    item.price *
-                      item.quantity *
-                      (schedule?.isRecurring ? schedule.occurrences : 1),
-                  )}
-                </b>
+                <b>{money(lineTotal)}</b>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           {order.specialInstructions ? (
