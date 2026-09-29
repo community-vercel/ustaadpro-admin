@@ -229,24 +229,19 @@ export default function OrderDetailPage() {
                 /per\s*sq/i.test(item.description || '');
               const parentServiceName = item.title || item.storedServiceTitle || 'Service';
               const textureTypeName = item.serviceWorkTitle || '';
-              const isTextureNamedType =
-                isTexture && textureTypeName && textureTypeName !== parentServiceName;
               return (
               <div className="orderedService" key={item.serviceId + '-' + (item.serviceWorkPriceId ?? 'direct')}>
                 {item.imageUrl && <img src={resolveAssetUrl(item.imageUrl)} alt="" />}
                 <div>
                   <strong>
-                    {item.quantity}x {parentServiceName}
+                    {item.quantity}x {isTexture ? textureTypeName || parentServiceName : parentServiceName}
                   </strong>
-                  {isTexture && (
-                    <small className="textureDetailLine">
-                      Texture design: <strong>{textureTypeName || parentServiceName}</strong>
-                      {area > 0 ? <> · Area selected: <strong>{area} sq ft</strong></> : null}
-                      {rate > 0 ? <> · Price: <strong>{money(rate)} per sq ft</strong></> : null}
-                      {area > 0 && rate > 0 ? <> · Textures total: <strong>{money(area * rate)}</strong></> : null}
-                    </small>
-                  )}
                   <p>{item.description}</p>
+                  {isTexture ? (
+                    <small className="textureDetailLine">
+                      Per sq ft: <strong>{money(rate)}</strong> · Texture design: <strong>{textureTypeName || parentServiceName}</strong> · Area: <strong>{area} sq ft</strong> · Rate: <strong>{money(rate)}/sq ft</strong> · Total: <strong>{money(area * rate)}</strong>
+                    </small>
+                  ) : null}
                   <small>
                     {item.serviceType || 'Standard Visit'} - {item.duration} -{' '}
                     {item.categoryId}
