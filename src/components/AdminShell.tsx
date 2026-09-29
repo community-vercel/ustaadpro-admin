@@ -7,6 +7,7 @@ import {useEffect, useState} from 'react';
 import {
   ClipboardList,
   ReceiptText,
+  Wallet,
   LayoutDashboard,
   Settings,
   Users,
@@ -37,6 +38,7 @@ const navItems: NavItem[] = [
   {href: '/', label: 'Overview', Icon: LayoutDashboard},
   {href: '/orders', label: 'Orders', Icon: ClipboardList},
   {href: '/payment-receipts', label: 'Payment Receipts', Icon: ReceiptText},
+  {href: '/settlements', label: 'Settlements', Icon: Wallet},
   {href: '/services', label: 'Services', Icon: Wrench},
   {href: '/subscriptions', label: 'Subscriptions', Icon: Package},
   {href: '/shop-products', label: 'Shop Products', Icon: ShoppingBag},

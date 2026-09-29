@@ -412,6 +412,45 @@ export function getPaymentReceipt(id: number | string) {
 export function updatePaymentReceiptStatus(id: number, status: 'submitted' | 'verified' | 'rejected') {
   return request('/admin/payment-receipts/' + id + '/status', {method: 'PATCH', body: JSON.stringify({status})});
 }
+
+export interface AdminWithdrawal {
+  id: number;
+  userId: number;
+  amount: number;
+  method: 'easypaisa' | 'jazzcash' | 'bank';
+  accountNumber: string;
+  accountName: string | null;
+  bankName: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  adminNote: string | null;
+  processedAt: string | null;
+  createdAt: string;
+  userName?: string;
+  userPhone?: string;
+  userEmail?: string;
+}
+
+export interface AdminWithdrawalsPage {
+  withdrawals: AdminWithdrawal[];
+  total: number;
+  hasMore: boolean;
+  summary: {pendingCount: number; pendingAmount: number; approvedAmount: number};
+}
+
+export function getWithdrawals(params: {status?: string; limit?: number; offset?: number} = {}) {
+  const query = new URLSearchParams();
+  query.set('limit', String(params.limit ?? 50));
+  query.set('offset', String(params.offset ?? 0));
+  if (params.status) query.set('status', params.status);
+  return request<AdminWithdrawalsPage>('/admin/withdrawals?' + query.toString());
+}
+
+export function updateWithdrawalStatus(id: number, status: 'approved' | 'rejected', adminNote?: string) {
+  return request('/admin/withdrawals/' + id + '/status', {
+    method: 'PATCH',
+    body: JSON.stringify({status, adminNote}),
+  });
+}
 export function deleteHomeSlide(id: string) {
   return request(`/admin/home-slides/${id}`, {method: 'DELETE'});
 }
