@@ -186,8 +186,8 @@ export default function OrderDetailPage() {
                   </strong>
                   <p>{item.description}</p>
                   {item.workPricingMode === 'per_sqft' && (
-                    <small>
-                      Design priced per sq ft: {money(item.workPricePerSqft || 0)} × {item.workAreaSqft || 0} sq ft
+                    <small className="textureDetailLine">
+                      Texture design: <strong>{item.serviceWorkTitle || item.title}</strong> · Area: <strong>{item.workAreaSqft || 0} sq ft</strong> · Rate: <strong>{money(item.workPricePerSqft || 0)}/sq ft</strong> · Line total: <strong>{money(item.price * item.quantity * (schedule?.isRecurring ? schedule.occurrences : 1))}</strong>
                     </small>
                   )}
                   <small>

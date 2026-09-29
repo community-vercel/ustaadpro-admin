@@ -136,7 +136,16 @@ export default function PaymentReceiptDetailsPage() {
               {receipt.items.map(item => (
                 <div className="receiptItemRow" key={`${receipt.id}-${item.serviceId}-${item.serviceWorkPriceId || item.title}`}>
                   {item.imageUrl ? <img src={resolveAssetUrl(item.imageUrl)} alt="" /> : <div className="receiptItemIcon"><ReceiptText size={20} /></div>}
-                  <div><strong>{item.serviceWorkTitle || item.title}</strong><p>{item.serviceType || item.categoryId}</p>{item.detailDescription ? <small>{item.detailDescription}</small> : null}</div>
+                  <div>
+                    <strong>{item.serviceWorkTitle || item.title}</strong>
+                    <p>{item.serviceType || item.categoryId}</p>
+                    {item.workPricingMode === 'per_sqft' ? (
+                      <small className="textureDetailLine">
+                        Texture design: <strong>{item.serviceWorkTitle || item.title}</strong> · Area: <strong>{item.workAreaSqft || 0} sq ft</strong> · Rate: <strong>{money(item.workPricePerSqft || 0)}/sq ft</strong> · Total: <strong>{money((item.workPricePerSqft || 0) * (item.workAreaSqft || 0))}</strong>
+                      </small>
+                    ) : null}
+                    {item.detailDescription ? <small>{item.detailDescription}</small> : null}
+                  </div>
                   <span>{item.quantity}x {money(item.price)}</span>
                 </div>
               ))}

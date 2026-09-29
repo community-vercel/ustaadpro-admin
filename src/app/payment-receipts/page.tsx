@@ -108,6 +108,7 @@ export default function PaymentReceiptsPage() {
           <div className="ordersList">
             {orders.map(({latest, receipts: orderReceipts, paid, balance}) => {
               const services = latest.items.map(item => item.serviceWorkTitle || item.title).filter(Boolean).join(', ') || 'Service not available';
+              const textureItems = latest.items.filter(item => item.workPricingMode === 'per_sqft');
               return <div className="orderCard" key={latest.orderId}>
                 <div className="orderCardHead">
                   <div><p className="eyebrow">{latest.orderId}</p><h3>{latest.customerName || 'Customer'}</h3><p>{latest.customerPhone} / {latest.customerEmail || 'No email'}</p></div>
@@ -118,6 +119,14 @@ export default function PaymentReceiptsPage() {
                 </div>
                 <div className="receiptPreviewRow receiptSummaryOnly"><div><strong>{orderReceipts.length} payment receipt{orderReceipts.length === 1 ? '' : 's'}</strong><p className="mutedLine">{orderReceipts.map(item => `${stageLabel(item.paymentStage)}: Rs. ${Number(item.amount || 0).toLocaleString()}`).join(' / ')}</p></div></div>
                 <div className="receiptSummaryLine"><span>Service booked</span><strong>{services}</strong><span>Payment summary</span><strong>Paid: Rs. {paid.toLocaleString()} / Remaining: Rs. {balance.toLocaleString()}</strong></div>
+                {textureItems.length ? (
+                  <div className="receiptSummaryLine">
+                    <span>Texture details</span>
+                    <strong>
+                      {textureItems.map(item => `${item.serviceWorkTitle || item.title} — ${item.workAreaSqft || 0} sq ft × Rs. ${Number(item.workPricePerSqft || 0).toLocaleString()}/sq ft`).join(' | ')}
+                    </strong>
+                  </div>
+                ) : null}
               </div>;
             })}
             <div ref={sentinel} className="receiptPageSizeNote">{loadingMore ? 'Loading 15 more bookings...' : hasMore ? 'Scroll to load more' : `All ${total} bookings loaded`}</div>

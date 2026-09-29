@@ -2776,3 +2776,19 @@ select.statusSelectCancelled {
 .settlementActions {
   margin-top: 10px;
 }
+
+.textureDetailLine {
+  display: block;
+  margin-top: 4px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #effcf6;
+  border: 1px solid #bfe9d4;
+  color: #065f46;
+  font-size: 12.5px;
+  line-height: 18px;
+}
+
+.textureDetailLine strong {
+  color: #047857;
+}
