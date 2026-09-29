@@ -236,12 +236,13 @@ export default function OrderDetailPage() {
                   <strong>
                     {item.quantity}x {isTexture ? textureTypeName || parentServiceName : parentServiceName}
                   </strong>
-                  <p>{item.description}</p>
+                  <p>{item.serviceType || item.categoryId}</p>
                   {isTexture ? (
                     <small className="textureDetailLine">
-                      Per sq ft: <strong>{money(rate)}</strong> · Texture design: <strong>{textureTypeName || parentServiceName}</strong> · Area: <strong>{area} sq ft</strong> · Rate: <strong>{money(rate)}/sq ft</strong> · Total: <strong>{money(area * rate)}</strong>
+                      Texture design: <strong>{textureTypeName || parentServiceName}</strong> · Area: <strong>{area} sq ft</strong> · Rate: <strong>{money(rate)}/sq ft</strong> · Total: <strong>{money(area * rate)}</strong>
                     </small>
                   ) : null}
+                  {item.detailDescription ? <small>{item.detailDescription}</small> : null}
                   <small>
                     {item.serviceType || 'Standard Visit'} - {item.duration} -{' '}
                     {item.categoryId}
